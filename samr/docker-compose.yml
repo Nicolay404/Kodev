@@ -1,0 +1,194 @@
+version: '3.8'
+
+networks:
+  samr-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+x-django-service: &django-service
+  networks:
+    - samr-net
+  environment:
+    - RABBITMQ_URL=$RABBITMQ_URL
+    - DB_PASSWORD=$DB_PASSWORD
+  # Nota: health sólo funcionará una vez exista el command manage.py health en la Fase 3
+  healthcheck:
+    test: ["CMD-SHELL", "python manage.py health || exit 1"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 20s
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: samr-postgres
+    networks:
+      - samr-net
+    environment:
+      POSTGRES_USER: samr
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No se expone el puerto al host
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: samr-redis
+    networks:
+      - samr-net
+    # No se expone el puerto al host
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: samr-rabbitmq
+    networks:
+      - samr-net
+    ports:
+      - "15672:15672" # Sólo UI de management para depurar
+
+  nginx:
+    image: nginx:1.26-alpine
+    container_name: samr-nginx
+    networks:
+      - samr-net
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/samr.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - auth-service
+      - notification-service
+      - patient-service
+      - solicitud-service
+      - monitoring-service
+      - evaluacion-service
+      - teleconsult-service
+      - emergency-service
+      - cierre-caso-service
+      - historial-interop-service
+      - audit-service
+      - admin-integracion-service
+
+  bff-service:
+    build: ./bff/bff-service
+    container_name: samr-bff
+    networks:
+      - samr-net
+    ports:
+      - "8000:8000"
+    depends_on:
+      - nginx
+    environment:
+      - API_GATEWAY_URL=https://nginx
+
+  auth-service:
+    <<: *django-service
+    build: ./services/auth-service
+    container_name: samr-auth
+    environment:
+      - DB_NAME=auth_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+      - JWT_PRIVATE_KEY_PATH=/keys/private.pem
+    volumes:
+      - ./keys:/keys:ro
+
+  notification-service:
+    <<: *django-service
+    build: ./services/notification-service
+    container_name: samr-notification
+
+  patient-service:
+    <<: *django-service
+    build: ./services/patient-service
+    container_name: samr-patient
+    environment:
+      - DB_NAME=patient_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  solicitud-service:
+    <<: *django-service
+    build: ./services/solicitud-service
+    container_name: samr-solicitud
+    environment:
+      - DB_NAME=solicitud_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  monitoring-service:
+    <<: *django-service
+    build: ./services/monitoring-service
+    container_name: samr-monitoring
+    environment:
+      - DB_NAME=monitoring_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  evaluacion-service:
+    <<: *django-service
+    build: ./services/evaluacion-service
+    container_name: samr-evaluacion
+    environment:
+      - DB_NAME=evaluacion_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  teleconsult-service:
+    <<: *django-service
+    build: ./services/teleconsult-service
+    container_name: samr-teleconsult
+    environment:
+      - DB_NAME=teleconsult_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  emergency-service:
+    <<: *django-service
+    build: ./services/emergency-service
+    container_name: samr-emergency
+    environment:
+      - DB_NAME=emergency_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  cierre-caso-service:
+    <<: *django-service
+    build: ./services/cierre-caso-service
+    container_name: samr-cierre-caso
+    environment:
+      - DB_NAME=cierre_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  historial-interop-service:
+    <<: *django-service
+    build: ./services/historial-interop-service
+    container_name: samr-historial-interop
+    environment:
+      - DB_NAME=historial_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  audit-service:
+    <<: *django-service
+    build: ./services/audit-service
+    container_name: samr-audit
+    environment:
+      - DB_NAME=audit_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
+
+  admin-integracion-service:
+    <<: *django-service
+    build: ./services/admin-integracion-service
+    container_name: samr-admin-integracion
+    environment:
+      - DB_NAME=admin_db
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - DB_PASSWORD=$DB_PASSWORD
