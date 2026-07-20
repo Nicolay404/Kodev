@@ -19,6 +19,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -74,8 +75,19 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'admin-integracion-service'
+MVP_CENTER_VALIDATION_OUTCOME = os.environ.get('MVP_CENTER_VALIDATION_OUTCOME', 'validated')
+
+CELERY_BROKER_URL = RABBITMQ_URL
+CELERY_RESULT_BACKEND = 'rpc://'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_DEFAULT_QUEUE = 'admin-integracion-service.celery'
+CELERY_TASK_DEFAULT_EXCHANGE = 'admin-integracion-service.celery'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'admin-integracion-service.celery'
+CELERY_TASK_ACKS_LATE = True
 
 RABBITMQ_EXCHANGE = 'samr.events'
 RABBITMQ_PUBLISH_KEYS = {

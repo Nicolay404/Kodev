@@ -31,6 +31,7 @@ def _create_jwt(private_key, rol, user_id=100):
         'email': f'{rol}@test.com',
         'rol': rol,
         'type': 'access',
+        'iss': 'samr-auth-service',
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
     }
     return jwt.encode(payload, private_key, algorithm='RS256')
@@ -45,10 +46,8 @@ def test_health():
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-@patch('main.http_client.get')
 @pytest.mark.asyncio
-async def test_dashboard_patient(mock_get, auth_jwt_patient):
-    client = TestClient(app)
+async def test_dashboard_patient(auth_jwt_patient):
     
     # Mocking httpx response
     class MockResponse:
@@ -58,11 +57,9 @@ async def test_dashboard_patient(mock_get, auth_jwt_patient):
         def json(self):
             return self.json_data
 
-    mock_get.return_value = MockResponse({"mock": "data"}, 200)
-    
-    response = client.get("/dashboard/", headers={"Authorization": f"Bearer {auth_jwt_patient}"})
+    with TestClient(app) as client:
+        with patch('main.http_client.get', return_value=MockResponse({"mock": "data"}, 200)) as mock_get:
+            response = client.get("/dashboard/", headers={"Authorization": f"Bearer {auth_jwt_patient}"})
     assert response.status_code == 200
-    assert 'profile' in response.json()
-    assert 'alerts' in response.json()
-    
-    assert response.json()['profile'] == {"mock": "data"}
+    assert set(response.json()) == {'patient', 'evaluacion', 'monitoring', 'atencion'}
+    assert response.json()['patient'] == {"mock": "data"}

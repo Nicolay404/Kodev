@@ -1,21 +1,19 @@
-from django.db import models
+import secrets
 import uuid
+from django.db import models
+
+
+def room_token(): return secrets.token_urlsafe(32)[:64]
+
 
 class TeleconsultSession(models.Model):
-    STATUS_CHOICES = (
-        ('pending', 'Pending'),
-        ('active', 'Active'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-    )
-
-    room_token = models.CharField(max_length=100, default=uuid.uuid4, unique=True)
-    patient_id = models.IntegerField()
-    doctor_id = models.IntegerField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    notes = models.TextField(blank=True, null=True)
-    started_at = models.DateTimeField(auto_now_add=True)
-    ended_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Session {self.room_token} - Status: {self.status}"
+    STATUS_CHOICES = (("active", "Active"), ("closed", "Closed"))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient_id = models.UUIDField()
+    professional_id = models.UUIDField()
+    emergency_id = models.UUIDField(null=True, blank=True)
+    room_token = models.CharField(max_length=64, unique=True, default=room_token, editable=False)
+    diagnosis = models.TextField(blank=True)
+    ai_recommendation = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    closed_at = models.DateTimeField(null=True, blank=True)

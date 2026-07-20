@@ -1,22 +1,28 @@
+import uuid
 from django.db import models
 
-class Center(models.Model):
-    name = models.CharField(max_length=255)
-    location = models.JSONField(default=dict)
-    is_active = models.BooleanField(default=True)
-    max_capacity = models.IntegerField(default=0)
-    current_occupancy = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.name} - Cap: {self.current_occupancy}/{self.max_capacity}"
+class Center(models.Model):
+    STATES = (("pending_validation", "Pending validation"), ("validated", "Validated"), ("rejected", "Rejected"))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    type = models.CharField(max_length=50, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATES, default="pending_validation")
+
+
+class Professional(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    center = models.ForeignKey(Center, on_delete=models.CASCADE)
+    specialty = models.CharField(max_length=100)
+    available = models.BooleanField(default=True)
+    current_load = models.PositiveSmallIntegerField(default=0)
+
 
 class Device(models.Model):
-    mac_address = models.CharField(max_length=17, unique=True)
-    patient_id = models.IntegerField()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient_id = models.UUIDField()
     device_type = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Device {self.mac_address} (Patient {self.patient_id})"
+    registered_by = models.UUIDField()
+    active = models.BooleanField(default=True)

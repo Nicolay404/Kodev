@@ -1,49 +1,52 @@
-import pika
+"""Consumidor de eventos de dominio SAMR."""
 import json
-import os
 import logging
+import os
+import pika
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672//')
+RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/%2F")
 logger = logging.getLogger(__name__)
+REQUIRED_FIELDS = {"event_id", "event_type", "service_origin", "timestamp", "version", "payload"}
+
 
 def iniciar_consumidor(queue_name: str, routing_keys: list[str], callback):
-    parameters = pika.URLParameters(RABBITMQ_URL)
-    connection = pika.BlockingConnection(parameters)
+    connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URL))
     channel = connection.channel()
-
-    # Declarar exchanges
-    channel.exchange_declare(exchange='samr.events', exchange_type='topic', durable=True)
-    channel.exchange_declare(exchange='samr.events.dlx', exchange_type='topic', durable=True)
-
-    # Declarar cola
+    channel.exchange_declare(exchange="samr.events", exchange_type="topic", durable=True)
+    channel.exchange_declare(exchange="samr.events.dlx", exchange_type="topic", durable=True)
+    dlq_name = f"{queue_name}.dlq"
+    channel.queue_declare(queue=dlq_name, durable=True)
+    channel.queue_bind(queue=dlq_name, exchange="samr.events.dlx", routing_key=queue_name)
     channel.queue_declare(
-        queue=queue_name, 
-        durable=True, 
-        arguments={'x-dead-letter-exchange': 'samr.events.dlx'}
+        queue=queue_name, durable=True,
+        arguments={
+            "x-queue-type": "quorum", "x-delivery-limit": 3,
+            "x-dead-letter-exchange": "samr.events.dlx",
+            "x-dead-letter-routing-key": queue_name,
+        },
     )
+    for routing_key in routing_keys:
+        channel.queue_bind(exchange="samr.events", queue=queue_name, routing_key=routing_key)
 
-    # Bindings
-    for rk in routing_keys:
-        channel.queue_bind(exchange='samr.events', queue=queue_name, routing_key=rk)
-
-    def on_message_callback(ch, method, properties, body):
+    def on_message(ch, method, properties, body):
         try:
-            message = json.loads(body)
-            # Manejar límite de reintentos aquí (incrementando headers['x-retry-count'])
-            # antes de enviar a callback o propagar excepción
-            callback(message['payload'])
+            evento = json.loads(body)
+            missing = REQUIRED_FIELDS.difference(evento)
+            if missing or evento.get("version") != "1.0" or not isinstance(evento.get("payload"), dict):
+                raise ValueError(f"Envelope inválido; faltan {sorted(missing)}")
+            callback(evento["event_type"], evento["payload"])
             ch.basic_ack(delivery_tag=method.delivery_tag)
-        except Exception as e:
-            logger.error(f"Error procesando mensaje de cola {queue_name}: {e}")
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        except Exception:
+            logger.exception("Error procesando evento en %s", queue_name)
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=queue_name, on_message_callback=on_message_callback)
-
+    channel.basic_consume(queue=queue_name, on_message_callback=on_message)
     try:
-        logger.info(f"[*] Esperando eventos en {queue_name}. Para salir presione CTRL+C")
+        logger.info("Esperando eventos en %s", queue_name)
         channel.start_consuming()
     except KeyboardInterrupt:
         channel.stop_consuming()
     finally:
-        connection.close()
+        if connection.is_open:
+            connection.close()

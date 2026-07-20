@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/vitals_critical_detected.schema.json",
+  "title": "vitals.critical_detected",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "vitals.critical_detected"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "patient_id",
+            "vital_sign_id",
+            "vital_type",
+            "value"
+          ]
+        }
+      }
+    }
+  ]
+}

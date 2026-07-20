@@ -1,22 +1,11 @@
 from celery import shared_task
-from apps.audit.models import DecisionIA
+from apps.audit.models import AuditLog
+
 
 @shared_task
-def procesar_riesgo_evaluado(event_data):
-    """
-    Registra de forma inmutable la decisión de IA cada vez que se evalúa un riesgo.
-    (RF-18, RNF-38)
-    """
-    solicitud_id = event_data.get('solicitud_id')
-    evaluacion_id = event_data.get('evaluacion_id')
-    decision = event_data.get('decision', {})
-    
-    if not solicitud_id:
-        return
-        
-    DecisionIA.objects.create(
-        solicitud_id=solicitud_id,
-        evaluacion_id=evaluacion_id,
-        decision=decision,
-        context=event_data.get('context', {})
-    )
+def process_event(event_type, payload):
+    actor = payload.get("actor_id") or payload.get("usuario_id")
+    return AuditLog.objects.create(event_type=event_type, actor_id=actor or None, payload=payload.get("payload", payload), ai_confidence=payload.get("ai_confidence"), ai_explainability=payload.get("ai_explainability")).id
+
+
+procesar_riesgo_evaluado = lambda event_data: process_event("riesgo.evaluado", event_data)

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/matching_fallido.schema.json",
+  "title": "matching.fallido",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "matching.fallido"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "evaluacion_id",
+            "reason"
+          ]
+        }
+      }
+    }
+  ]
+}

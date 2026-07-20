@@ -20,4 +20,4 @@ RUN chown -R samr:samr /app
 USER samr
 EXPOSE 8002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3   CMD python manage.py health || exit 1
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8002", "config.asgi:application"]
+CMD ["sh", "-c", "until python manage.py migrate --noinput; do sleep 2; done; exec daphne -b 0.0.0.0 -p 8002 config.asgi:application"]

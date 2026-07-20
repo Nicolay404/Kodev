@@ -374,3 +374,150 @@ volumes: [pgdata]
 
 ---
 *Ver también: `data/persistence-db` (esquemas SQL), `logic/core-services` (eventos y comunicación), `sec/security-hardening` (Nginx, JWT, RBAC), `ui/frontend-app`, `ux/design-prototypes`.*
+
+---
+
+# Registro de trabajo de agentes
+
+## 2026-07-20 — Documentación operativa final del backend
+
+- Se anexó a `README.md` y `samr/ONBOARDING.md` el arranque automático vigente, la topología de workers/consumidores y las dependencias nuevas (`celery`/`redis`).
+- Se preservaron las secciones preexistentes; la aclaración del backend se añadió al final conforme a la regla de integridad documental.
+
+## 2026-07-20 — Verificación de emisor JWT en BFF
+
+- El BFF ahora valida explícitamente `iss=samr-auth-service`, además de firma RS256, expiración y tipo `access`.
+- Se actualizó el fixture BFF para representar el mismo contrato de token que emite `auth-service`.
+
+## 2026-07-20 — Smoke test HTTPS y BFF
+
+- Se verificó registro y login reales a través de Nginx/TLS con el usuario sintético `mvp-smoke@samr.local`; el registro público ignoró escalamiento y creó rol `patient`, y el login emitió access/refresh RS256.
+- El JWT real fue propagado por el BFF al Gateway y produjo las cuatro claves del contrato: `patient`, `evaluacion`, `monitoring`, `atencion`.
+- Para el usuario sin perfil, `patient` devuelve 404; `evaluacion` y `atencion` listas vacías; `monitoring` devuelve 403 porque el único endpoint documentado de alertas exige rol Medical/Admin. No se ampliaron permisos fuera de los documentos.
+- Se reinició Nginx después de recrear contenedores para renovar la resolución DNS de sus upstreams en el smoke test local.
+
+## 2026-07-20 — Smoke test de saga coreografiada
+
+- Se publicó en el clúster real el evento sintético `solicitud.validada` con ID `7bd0957f-7c36-41ee-aca6-0a72126cc07b`.
+- `evaluacion-service` consumió el evento mediante RabbitMQ, su worker aislado persistió la evaluación de la solicitud sintética `55555555-5555-4555-8555-555555555555` con nivel MVP `medio` y publicó `riesgo.evaluado` y `ai.decision_logged`.
+- `audit-service` consumió y persistió los tres eventos (`solicitud.validada`, `riesgo.evaluado`, `ai.decision_logged`), comprobando la comunicación entre M1, M2 y M4.
+- No se activó emergencia porque la regla simulada no clasificó el caso como `critico`; no se modificaron umbrales clínicos para forzar el resultado.
+
+## 2026-07-20 — Aplicación Celery activa en procesos Django
+
+- La prueba de saga confirmó que los eventos llegaban a RabbitMQ, pero los consumidores usaban la aplicación Celery global al invocar `.delay()` y agotaban tres reintentos hacia la DLQ.
+- Los seis servicios asíncronos exponen ahora `celery_app` desde `config/__init__.py`, por lo que vistas, comandos y consumidores usan el broker y la cola aislada definidos por su servicio.
+
+## 2026-07-20 — Registro de tareas y recursos Celery del MVP
+
+- Se registraron explícitamente los módulos de tareas de los seis workers; la autodetección genérica no importaba archivos con nombres de dominio como `procesar_solicitud.py`.
+- Se fijó concurrencia 1 por worker para el entorno MVP local, reduciendo el consumo de procesos sin cambiar la separación de colas ni impedir escalar el valor en despliegues futuros.
+- Se verificaron los nombres exportados de cada tarea, incluido `validate_with_consortium` para la simulación M2M.
+- La verificación de clúster ajustó el registro a `app.conf.imports`: Celery importa cada módulo después de `django.setup()`, evitando `AppRegistryNotReady` en tareas que usan modelos.
+
+## 2026-07-20 — Confirmación correcta de publicación RabbitMQ
+
+- La prueba de saga real detectó y corrigió una interpretación incorrecta del retorno de `BlockingChannel.basic_publish`.
+- Con publisher confirms activo, Pika comunica NACK o mensaje no enrutable mediante excepción; ya no se trata el retorno `None` de un ACK válido como error.
+- La corrección se replicó en las 11 copias aisladas del publicador y en la referencia de `shared/events`.
+
+## 2026-07-20 — Aislamiento de colas Celery
+
+- Se asignó una cola, exchange y routing key Celery propios a solicitud, evaluación, historial, auditoría, administración y notificaciones.
+- Esto impide que un worker consuma o descarte tareas pertenecientes a otro microservicio mientras todos comparten RabbitMQ como broker único.
+- Se sincronizó el catálogo configurado de eventos de notificación con los bindings realmente consumidos por el MVP.
+
+## 2026-07-20 — Inicialización ASGI para WebSocket
+
+- Se corrigió el orden de arranque ASGI de `monitoring-service` y `teleconsult-service`: Django carga sus settings y registro de aplicaciones antes de importar consumidores que usan modelos.
+- La corrección elimina el ciclo de reinicio observado al validar teleconsulta en el clúster real.
+
+## 2026-07-20 — Cola y DLQ de notificaciones
+
+- El consumidor de notificaciones ahora valida el sobre v1.0 y declara su exchange, cola quorum, límite de tres entregas y DLQ aislada de forma idempotente.
+- Esta declaración automática permite levantar el MVP desde cero sin depender de una ejecución manual previa del script RabbitMQ.
+
+## 2026-07-20 — Arranque reproducible de PostgreSQL y migraciones
+
+- Se convirtió `scripts/init-db.sh` en un inicializador idempotente compatible con `/docker-entrypoint-initdb.d`, que crea exactamente las 11 bases documentadas.
+- PostgreSQL monta el inicializador en Docker Compose y cada API persistente aplica sus migraciones antes de iniciar Daphne/Gunicorn, reintentando mientras la base termina de arrancar.
+- Los procesos Django usan `restart: on-failure` para recuperarse de carreras de arranque de PostgreSQL o RabbitMQ sin introducir otro orquestador.
+
+## 2026-07-20 — Corrección del adaptador de notificaciones MVP
+
+- El adaptador de notificaciones lee `MVP_NOTIFICATION_BACKEND` directamente del entorno para poder ejecutarse tanto dentro de Celery/Django como en pruebas unitarias aisladas.
+- Se mantiene `log` como único backend simulado permitido; cualquier valor no configurado falla explícitamente y no simula un envío real.
+
+## 2026-07-20 — Procesos asíncronos del MVP
+
+- Se declararon en Docker Compose los consumidores RabbitMQ separados de los servidores HTTP para M1, M2, M3, M4 y notificaciones.
+- Se declararon workers Celery separados para validación de solicitudes, evaluación, consolidación FHIR, auditoría y validación de centros; RabbitMQ continúa siendo el único broker.
+- Se completó la configuración Celery de `admin-integracion-service` con serialización JSON y confirmación tardía de tareas.
+
+## 2026-07-20 — Trazabilidad HTTP y validación de contenido
+
+- Se activó en los 12 servicios Django el middleware común que propaga o genera `X-Request-ID`.
+- Las operaciones con cuerpo rechazan tipos distintos de `application/json` y `application/fhir+json` con HTTP 415, de acuerdo con el contrato HTTP del backend.
+
+## 2026-07-20 — Contratos versionados del bus de eventos
+
+- Se creó `samr/event-schemas/` con el sobre común v1.0 y un JSON Schema por cada routing key publicada por el MVP.
+- Los contratos fijan identificadores, tipo, origen, fecha, versión y campos mínimos del payload sin acoplar los servicios entre sí.
+
+## 2026-07-20 — Worker de validación externa MVP
+
+- Se añadió la configuración Celery de `admin-integracion-service` para ejecutar de forma asíncrona el adaptador simulado de validación de centros médicos.
+- El adaptador permanece desacoplado por variable de entorno para que la simulación del Consorcio pueda sustituirse posteriormente por una integración real sin cambiar el contrato del endpoint.
+
+## 2026-07-19 — Preparación del ambiente local (`logic/core-services`)
+
+- Se verificó que la rama activa es `logic/core-services` y que el árbol de trabajo estaba limpio al iniciar.
+- Se instaló Docker Desktop 4.82.0 (Docker Engine CLI 29.6.1 y Docker Compose v5.3.0).
+- Se habilitaron las características de Windows `Microsoft-Windows-Subsystem-Linux` y `VirtualMachinePlatform`; Windows requiere reinicio antes de iniciar el motor de Docker.
+- Se creó `samr/.env` a partir de los valores de desarrollo ya definidos en `samr/.env.example`; el archivo permanece excluido de Git.
+- Se generó el par de claves RSA de desarrollo en `samr/keys/` mediante el script existente de `auth-service`, y se excluyó ese directorio de Git para impedir que la clave privada se versionara.
+- Se validó la sintaxis de todo el código Python de `samr/` mediante `compileall` (sin errores) y se añadieron exclusiones para artefactos locales `__pycache__/` y `*.py[cod]`.
+- Tras iniciar Docker, se construyeron las 13 imágenes propias y se levantaron los 17 contenedores definidos por Compose.
+- Se crearon de forma idempotente las 11 bases PostgreSQL definidas por el patrón Database-per-Service.
+- Se generó una migración inicial por cada app de dominio (11 en total) exclusivamente desde los modelos existentes, sin agregar ni alterar campos o relaciones de negocio.
+- Se implementó el comando Django `health` que ya era invocado por los Dockerfiles: valida PostgreSQL en los 11 servicios persistentes y RabbitMQ en `notification-service`.
+- Se montó `public.pem` en modo solo lectura para todos los servicios verificadores y el BFF, manteniendo `private.pem` montada exclusivamente en `auth-service`; también se retiró la clave Compose `version` obsoleta.
+- Se corrigió `RABBITMQ_URL` para codificar el vhost raíz como `%2F`, requerido por Pika y compatible con Celery, y se documentó el valor en README/ONBOARDING.
+- Se fijó `eol=lf` para scripts Bash mediante `samr/.gitattributes`, evitando errores de ejecución Linux causados por finales CRLF de Windows.
+- Se añadió configuración `pytest.ini` por servicio (`DJANGO_SETTINGS_MODULE` para Django y `pythonpath` para BFF) y se documentó el comando de pruebas backend.
+- Se normalizó la respuesta de los autenticadores Bearer, M2M y de dispositivo agregando su encabezado `WWW-Authenticate`, para que DRF responda HTTP 401 cuando faltan credenciales.
+- Se marcó `patient_id` como campo de solo lectura en emergencias, ya que el endpoint lo obtiene del usuario autenticado, y se corrigió el mock asíncrono de Channels en la prueba de monitoreo.
+- Se configuró Nginx para propagar el `Host` original; sin esta directiva enviaba nombres internos con guion bajo y Django rechazaba las peticiones del Gateway con HTTP 400 (`DisallowedHost`).
+- Se ejecutaron las 13 suites dentro de Docker: 51 pruebas superadas. También se verificaron los 17 contenedores activos, los 12 servicios de aplicación saludables, las 11 bases PostgreSQL, el BFF (HTTP 200), la redirección HTTP→HTTPS, el Gateway (HTTP 401 esperado sin JWT) y RabbitMQ/exchange `samr.events` (HTTP 200).
+- No se modificaron modelos, flujos de negocio ni contratos de la arquitectura.
+
+## 2026-07-20 — Infraestructura compartida del backend MVP (`logic/core-services`)
+
+- Se normalizó el envelope v1.0 del publicador RabbitMQ, incluyendo serialización segura de UUID, Decimal y fechas, mensajes persistentes y confirmación de publicación.
+- Se corrigió el consumidor compartido para invocar el contrato documentado `callback(event_type, payload)` y validar los campos obligatorios del envelope.
+- Se implementó el límite declarativo de tres entregas mediante colas quorum de RabbitMQ 3.13 y un DLQ aislado por servicio; se corrigieron además los bindings para que reflejen el catálogo de `CORE_SERVICES.md`.
+- Se añadió el middleware compartido de `X-Request-ID` y validación estricta de `Content-Type` definido por el rol Core Services.
+- Las integraciones externas y reglas clínicas que no tienen contrato real se implementarán únicamente como adaptadores MVP reemplazables, por autorización expresa del usuario; nunca se presentarán como lógica clínica de producción.
+- `auth-service` se alineó al esquema canónico: UUID, seis roles documentados, contador persistente de intentos y `locked_until`; el registro público fuerza el rol `patient` y valida contraseña alfanumérica de ocho caracteres como mínimo.
+- Los JWT RS256 ahora incluyen emisor, `jti`, identificadores UUID serializados y tiempos documentados (15 minutos/7 días); el bloqueo se ejecuta transaccionalmente y su duración MVP se configura con `AUTH_LOCK_MINUTES`.
+- `patient-service` se alineó a `patient_db`: UUID lógico, cédula cifrada con Fernet, tipo sanguíneo, listas clínicas, geolocalización decimal y tres consentimientos LOPDP; se eliminó el historial local porque el consolidado pertenece exclusivamente a M4.
+- Se añadió `PATIENT_DATA_KEY` a la configuración backend y se documentó que la clave incluida es solo de desarrollo. El endpoint propio restringe el acceso al rol `patient` y el resumen M2M nunca expone la cédula.
+- `solicitud-service` se alineó a sus tres tablas documentadas con UUID y eliminó campos/modelos ajenos al esquema. El chat usa un adaptador MVP que solo recupera FAQ administradas, informa confianza y deriva a revisión humana cuando no alcanza el umbral; no genera consejo clínico.
+- La validación del Consorcio quedó detrás de `MVPConsortiumAdapter`, configurable para aceptación, rechazo o timeout. La tarea Celery conserva los estados `pendiente`, `validada`, `rechazada` y `pendiente_reintento` y publica únicamente los eventos del catálogo.
+- Se añadió Redis al servicio de solicitud para el cache FAQ de 60 segundos y se documentaron `REDIS_URL`, `MVP_FAQ_CONFIDENCE_THRESHOLD`, `MVP_CONSORTIUM_OUTCOME` y `AUTH_LOCK_MINUTES`.
+- `monitoring-service` se alineó a `vital_signs` y `monitoring_alerts` con UUID. La ingesta exige una Observation estructurada, token de dispositivo y registro previo recibido mediante `device.registered`; el registro habilitado se mantiene en Redis sin invadir la base M4.
+- Se añadió cache Redis de las últimas 50 lecturas durante 120 segundos, alertas WebSocket y RBAC para personal clínico/administrativo. Los umbrales de anomalía son un adaptador técnico MVP configurable en `MVP_VITAL_THRESHOLDS`, expresamente no clínico.
+- Se añadieron los procesos `consume_events` de M1: monitoring habilita dispositivos registrados por M4 y solicitud transforma `vitals.critical_detected` en una solicitud `iot_anomalia`, manteniendo la saga coreografiada sin llamadas directas entre bases de datos.
+- `evaluacion-service` se alineó a las tres tablas de M2 con UUID: evaluaciones de riesgo, matching y cache de centros. Los eventos `center.validated/rejected` son la única fuente de su catálogo local.
+- La evaluación MVP quedó aislada en reglas configurables y siempre declara `clinical_validation=false`; el matching determinista selecciona únicamente centros disponibles y exige identidad profesional, publicando `matching.fallido` cuando no existe candidato.
+- El DTO de matching transporta `patient_id` sin persistirlo en M2 para que `recursos.asignados` pueda iniciar M3; así se mantiene el esquema documentado de `evaluacion_db` y la referencia sigue siendo lógica entre servicios.
+- `teleconsult-service` se alineó al esquema UUID de M3, puede crear sesiones por endpoint o al consumir `recursos.asignados`, y publica `teleconsult.session_started`. El WebSocket autoriza participantes de una sala activa y rechaza todo mensaje que no sea `offer`, `answer` o `ice-candidate`.
+- `emergency-service` se limitó a RF-14 con casos y guías UUID. Consume escalamiento/alertas críticas, publica creación y despacho, aplica RBAC y usa una guía MVP estática configurable que evita instrucciones clínicas inventadas.
+- `cierre-caso-service` se alineó a `clinical_cases`, abre casos desde eventos de atención y exige notas, fuente de atención y SHA-256 reproducible antes de cerrar. Se añadió la lectura `mis-casos` requerida explícitamente por el contrato BFF de Core Services.
+- `historial-interop-service` se redujo al expediente consolidado UUID, consume `caso.cerrado` de forma idempotente e invalida su cache FHIR. La exposición FHIR verifica `consent_sharing` por M2M con patient-service y cachea el Bundle 300 segundos; no simula envíos externos.
+- Se añadió el cliente Redis requerido por el backend de cache de Django en historial-interop-service.
+- `audit-service` se separó en evidencia `AuditLog` append-only y ciclo mutable `AuditReview`, consume el wildcard `#` y restringe lectura/revisión exclusivamente a `dpd_delegate`, sin alterar nunca el registro original.
+- `admin-integracion-service` se alineó a centers/professionals/devices con UUID. Centros se validan mediante un adaptador M2M configurable y dispositivos publican `device.registered`; `serial_number` permanece solo en el DTO/evento porque el esquema aprobado no autoriza persistirlo.
+- Se añadió Celery a admin-integracion-service para ejecutar la validación M2M de centros fuera del hilo HTTP, como exige Core Services.
+- El BFF se limitó a propagar JWT al API Gateway y agrega en paralelo los cuatro contratos documentados (`patient`, `evaluacion`, `monitoring`, `atencion`); se eliminó TLS inseguro implícito y CORS wildcard.
+- `notification-service` consume exclusivamente el catálogo de eventos notificables en un proceso separado y delega el envío a `MVPLogNotificationAdapter`; `MVP_NOTIFICATION_BACKEND=log` marca explícitamente que FCM aún es simulado.

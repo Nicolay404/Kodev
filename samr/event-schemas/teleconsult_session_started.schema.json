@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/teleconsult_session_started.schema.json",
+  "title": "teleconsult.session_started",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "teleconsult.session_started"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "session_id",
+            "room_token",
+            "patient_id",
+            "professional_id"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -20,6 +20,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,5 +78,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'patient-service'
+PATIENT_DATA_KEY = os.environ.get('PATIENT_DATA_KEY', 'wzd1e062klA2WIeiHi8mBo52fy_jmDJkK8a2ZI11HLE=')

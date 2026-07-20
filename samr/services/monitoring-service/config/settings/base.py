@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -22,6 +23,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -70,6 +72,8 @@ CHANNEL_LAYERS = {
         },
     },
 }
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
 
 LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
@@ -87,11 +91,13 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'monitoring-service'
+MVP_DEVICE_SERVICE_TOKEN = os.environ.get('MVP_DEVICE_SERVICE_TOKEN', 'mvp-device-service-token')
+MVP_VITAL_THRESHOLDS = json.loads(os.environ.get('MVP_VITAL_THRESHOLDS', '{"heart_rate":{"min":50,"max":110},"oxygen_saturation":{"min":90},"systolic_pressure":{"max":180},"diastolic_pressure":{"max":120}}'))
 
 RABBITMQ_EXCHANGE = 'samr.events'
 RABBITMQ_PUBLISH_KEYS = {
     'vitals.critical_detected': 'vitals.critical_detected',
 }
-RABBITMQ_CONSUME_KEYS = []
+RABBITMQ_CONSUME_KEYS = ['device.registered']

@@ -1,62 +1,63 @@
-import pytest
-from django.urls import reverse
-from rest_framework import status
-from apps.solicitud.models import FAQ, Conversation, Solicitud
 from unittest.mock import patch
+import pytest
+from django.test import override_settings
+from django.urls import reverse
+from apps.solicitud.models import Conversation, FAQ, Solicitud
+from tasks.validate_with_consortium import validate_with_consortium
+
 
 @pytest.mark.django_db
 class TestSolicitudAPI:
-
     def test_faq_list(self, api_client, patient_jwt):
-        FAQ.objects.create(question='Q1', answer='A1')
-        url = reverse('faq')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {patient_jwt}')
-        response = api_client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 1
+        FAQ.objects.create(question="dolor de cabeza", answer="Consulte a un profesional")
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        assert len(api_client.get(reverse("faq")).data) == 1
 
     def test_faq_create_admin(self, api_client, admin_jwt):
-        url = reverse('faq')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {admin_jwt}')
-        data = {'question': 'Q', 'answer': 'A'}
-        response = api_client.post(url, data, format='json')
-        assert response.status_code == status.HTTP_201_CREATED
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {admin_jwt}")
+        response = api_client.post(reverse("faq"), {"question": "Q", "answer": "A"}, format="json")
+        assert response.status_code == 201
 
     def test_faq_create_patient_forbidden(self, api_client, patient_jwt):
-        url = reverse('faq')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {patient_jwt}')
-        data = {'question': 'Q', 'answer': 'A'}
-        response = api_client.post(url, data, format='json')
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        assert api_client.post(reverse("faq"), {"question": "Q", "answer": "A"}, format="json").status_code == 403
 
-    def test_chat(self, api_client, patient_jwt):
-        url = reverse('chat')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {patient_jwt}')
-        data = {'message': 'Hola'}
-        response = api_client.post(url, data, format='json')
-        assert response.status_code == status.HTTP_200_OK
-        assert 'chat_id' in response.data
-        assert 'response' in response.data
+    @patch("apps.solicitud.views.publicar_evento")
+    def test_chat_faq_and_fallback(self, mock_publish, api_client, patient_jwt):
+        FAQ.objects.create(question="tengo dolor de cabeza fuerte", answer="Respuesta FAQ verificada")
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        response = api_client.post(reverse("chat"), {"message": "tengo dolor de cabeza fuerte"}, format="json")
+        assert response.status_code == 200
+        assert response.data["source"] == "faq"
+        fallback = api_client.post(reverse("chat"), {"message": "consulta sin coincidencia"}, format="json")
+        assert fallback.data["source"] == "human_escalation"
 
-    def test_conversation_delete(self, api_client, patient_jwt):
-        conv = Conversation.objects.create(patient_id=100)
-        url = reverse('conversation_delete', kwargs={'id': conv.id})
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {patient_jwt}')
-        response = api_client.delete(url)
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not Conversation.objects.filter(id=conv.id).exists()
+    def test_conversation_delete_owner(self, api_client, patient_jwt, patient_id):
+        conversation = Conversation.objects.create(patient_id=patient_id)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        response = api_client.delete(reverse("conversation_delete", kwargs={"id": conversation.id}))
+        assert response.status_code == 204
 
-    @patch('apps.solicitud.views.validate_with_consortium.delay')
-    def test_create_solicitud(self, mock_task, api_client, patient_jwt):
-        url = reverse('solicitud_create')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {patient_jwt}')
-        data = {
-            'description': 'Dolor de cabeza',
-            'symptoms': ['dolor'],
-            'urgency': 'low'
-        }
-        response = api_client.post(url, data, format='json')
-        assert response.status_code == status.HTTP_201_CREATED
-        assert Solicitud.objects.count() == 1
-        assert Solicitud.objects.first().estado == 'pendiente'
+    @patch("apps.solicitud.views.publicar_evento")
+    @patch("apps.solicitud.views.validate_with_consortium.delay")
+    def test_create_solicitud(self, mock_task, mock_publish, api_client, patient_jwt):
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        response = api_client.post(reverse("solicitud_create"), {"sintomas": ["dolor"], "fuente": "manual"}, format="json")
+        assert response.status_code == 201
+        assert Solicitud.objects.get().estado == "pendiente"
         mock_task.assert_called_once()
+
+    @patch("tasks.validate_with_consortium.publicar_evento")
+    @override_settings(MVP_CONSORTIUM_OUTCOME="validated")
+    def test_consortium_adapter_validates(self, mock_publish, patient_id):
+        solicitud = Solicitud.objects.create(patient_id=patient_id, sintomas=["dolor"])
+        assert validate_with_consortium(str(solicitud.id)) == "validada"
+        solicitud.refresh_from_db()
+        assert solicitud.estado == "validada"
+
+    @override_settings(MVP_CONSORTIUM_OUTCOME="timeout")
+    def test_consortium_timeout_pending_retry(self, patient_id):
+        solicitud = Solicitud.objects.create(patient_id=patient_id, sintomas=["dolor"])
+        assert validate_with_consortium(str(solicitud.id)) == "pending_retry"
+        solicitud.refresh_from_db()
+        assert solicitud.estado == "pendiente_reintento"

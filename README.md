@@ -41,3 +41,68 @@ docker compose up -d
 
 **Última actualización:** $(date)
 **Estado:** En construcción (fase: estructura base)
+
+### Backend local — RabbitMQ
+
+Para el vhost raíz de RabbitMQ se usa una ruta AMQP codificada, compatible tanto con Celery como con Pika:
+
+```env
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+```
+
+### Backend local — Pruebas
+
+Cada microservicio incluye su configuración de pytest. Con el entorno levantado, una suite individual se ejecuta así:
+
+```bash
+docker compose exec auth-service python -m pytest -q
+```
+
+### Backend local — cifrado de datos de paciente
+
+`patient-service` cifra la cédula con Fernet. El valor de desarrollo está en `.env.example`; en cualquier ambiente compartido debe reemplazarse:
+
+```env
+PATIENT_DATA_KEY=<clave-fernet-base64-de-32-bytes>
+```
+
+Los adaptadores backend del MVP se controlan sin acoplar el dominio a proveedores externos:
+
+```env
+AUTH_LOCK_MINUTES=10
+REDIS_URL=redis://redis:6379/0
+MVP_FAQ_CONFIDENCE_THRESHOLD=0.85
+MVP_CONSORTIUM_OUTCOME=validated
+```
+
+`MVP_CONSORTIUM_OUTCOME` admite `validated`, `rejected` o `timeout` para probar los estados del flujo M2M.
+
+La ingesta IoT MVP usa `MVP_DEVICE_SERVICE_TOKEN` y reglas configurables en `MVP_VITAL_THRESHOLDS`. Estos umbrales sirven solo para pruebas técnicas y deben sustituirse por reglas clínicas validadas.
+
+La evaluación MVP usa `MVP_DEFAULT_RISK_LEVEL`, `MVP_CRITICAL_TERMS` y `MVP_HIGH_TERMS`. Las listas vienen vacías deliberadamente: deben configurarse solo con criterios aprobados para la demostración.
+
+`MVP_FIRST_AID_GUIDE` define el mensaje de seguridad del simulador de emergencias. No debe reemplazarse por instrucciones clínicas sin aprobación profesional.
+
+`historial-interop-service` verifica consentimiento mediante `PATIENT_SERVICE_URL` y conserva Bundles FHIR durante 300 segundos en Redis.
+
+`MVP_CENTER_VALIDATION_OUTCOME` permite simular `validated` o `rejected` en la validación M2M de centros.
+
+`admin-integracion-service` incluye un worker Celery para ejecutar esa validación asíncrona usando RabbitMQ.
+
+El BFF usa `BFF_ALLOWED_ORIGINS` y `VERIFY_GATEWAY_TLS`; la verificación TLS solo se desactiva en el certificado autofirmado local.
+
+Las notificaciones del MVP usan `MVP_NOTIFICATION_BACKEND=log`; un proceso `notification-consumer` recibe eventos y el worker Celery ejecuta el adaptador simulado.
+
+### Backend local — arranque reproducible y procesos asíncronos
+
+Desde `samr/`, el entorno completo se construye y arranca con:
+
+```bash
+docker compose up -d --build
+```
+
+En un volumen PostgreSQL nuevo, `scripts/init-db.sh` crea automáticamente las 11 bases y cada API ejecuta sus migraciones antes de abrir el puerto. Los consumidores RabbitMQ declaran de forma idempotente exchange, cola quorum y DLQ; no se requiere inicialización manual para el flujo MVP.
+
+Compose inicia consumidores separados y workers Celery con cola propia para solicitud, evaluación, historial, auditoría, administración y notificaciones. La concurrencia local es 1 por worker para limitar recursos del MVP.
+
+Dependencias backend añadidas por estos módulos: `celery==5.3.6` en `admin-integracion-service`, y `redis==5.0.3` en `solicitud-service` e `historial-interop-service`. Docker las instala desde cada `requirements.txt`.

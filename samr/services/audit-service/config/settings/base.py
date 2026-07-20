@@ -20,6 +20,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,7 +76,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'audit-service'
 
 # ============================================================================
@@ -86,6 +87,9 @@ CELERY_RESULT_BACKEND = 'rpc://'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_DEFAULT_QUEUE = 'audit-service.celery'
+CELERY_TASK_DEFAULT_EXCHANGE = 'audit-service.celery'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'audit-service.celery'
 CELERY_TIMEZONE = 'UTC'
 
 RABBITMQ_EXCHANGE = 'samr.events'

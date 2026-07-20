@@ -1,41 +1,45 @@
-from django.db import models
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from django.utils import timezone
+from django.db import models
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError('El email es obligatorio')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+            raise ValueError("El email es obligatorio")
+        if not password:
+            raise ValueError("La contraseña es obligatoria")
+        user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
+
 class User(AbstractBaseUser):
     ROLE_CHOICES = (
-        ('patient', 'Patient'),
-        ('medical', 'Medical'),
-        ('admin', 'Admin'),
-        ('system_admin', 'System Admin'),
+        ("patient", "Patient"),
+        ("professional", "Professional"),
+        ("nurse", "Nurse/Paramedic"),
+        ("center_admin", "Center Admin"),
+        ("system_admin", "System Admin"),
+        ("dpd_delegate", "DPD Delegate"),
     )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    rol = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES, default="patient")
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     objects = UserManager()
+    USERNAME_FIELD = "email"
 
-    USERNAME_FIELD = 'email'
+    @property
+    def rol(self):
+        """Alias de compatibilidad para el claim JWT utilizado por los servicios."""
+        return self.role
 
     def __str__(self):
         return self.email
-
-class LoginAttempt(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    ip = models.GenericIPAddressField(null=True, blank=True)
-    timestamp = models.DateTimeField(default=timezone.now)
-    success = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.user.email} - {'Success' if self.success else 'Failed'} at {self.timestamp}"

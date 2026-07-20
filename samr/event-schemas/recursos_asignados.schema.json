@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/recursos_asignados.schema.json",
+  "title": "recursos.asignados",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "recursos.asignados"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "evaluacion_id",
+            "matching_id",
+            "patient_id",
+            "professional_id",
+            "center_id",
+            "score"
+          ]
+        }
+      }
+    }
+  ]
+}

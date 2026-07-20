@@ -1,66 +1,63 @@
-import jwt
 import datetime
-from django.conf import settings
+import uuid
+
+import jwt
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
+from django.conf import settings
 
-def get_private_key():
-    try:
-        with open(settings.JWT_PRIVATE_KEY_PATH, "rb") as key_file:
-            private_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=None,
-                backend=default_backend()
-            )
-        return private_key
-    except FileNotFoundError:
-        raise FileNotFoundError(f"No se encontró la clave privada en la ruta configurada: {settings.JWT_PRIVATE_KEY_PATH}")
 
-def get_public_key():
+class TokenError(Exception):
+    pass
+
+
+def _load_key(path, private=False):
     try:
-        with open(settings.JWT_PUBLIC_KEY_PATH, "rb") as key_file:
-            public_key = serialization.load_pem_public_key(
-                key_file.read(),
-                backend=default_backend()
-            )
-        return public_key
-    except FileNotFoundError:
-        raise FileNotFoundError(f"No se encontró la clave pública en la ruta configurada: {settings.JWT_PUBLIC_KEY_PATH}")
+        with open(path, "rb") as key_file:
+            content = key_file.read()
+    except FileNotFoundError as exc:
+        raise TokenError(f"No se encontró la clave JWT en {path}") from exc
+    if private:
+        return serialization.load_pem_private_key(content, password=None)
+    return serialization.load_pem_public_key(content)
+
 
 def generar_jwt_pair(user):
-    private_key = get_private_key()
-    
-    # Access Token (expira en 15 mins)
-    access_payload = {
-        'usuario_id': user.id,
-        'email': user.email,
-        'rol': user.rol,
-        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15),
-        'iat': datetime.datetime.now(datetime.timezone.utc),
-        'type': 'access'
+    now = datetime.datetime.now(datetime.timezone.utc)
+    private_key = _load_key(settings.JWT_PRIVATE_KEY_PATH, private=True)
+    common = {
+        "usuario_id": str(user.id),
+        "iat": now,
+        "jti": str(uuid.uuid4()),
+        "iss": "samr-auth-service",
     }
-    access_token = jwt.encode(access_payload, private_key, algorithm='RS256')
-    
-    # Refresh Token (expira en 7 días)
-    refresh_payload = {
-        'usuario_id': user.id,
-        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7),
-        'iat': datetime.datetime.now(datetime.timezone.utc),
-        'type': 'refresh'
+    access = {
+        **common,
+        "email": user.email,
+        "rol": user.role,
+        "type": "access",
+        "exp": now + datetime.timedelta(minutes=15),
     }
-    refresh_token = jwt.encode(refresh_payload, private_key, algorithm='RS256')
-    
+    refresh = {
+        **common,
+        "jti": str(uuid.uuid4()),
+        "type": "refresh",
+        "exp": now + datetime.timedelta(days=7),
+    }
     return {
-        'access_token': access_token,
-        'refresh_token': refresh_token
+        "access_token": jwt.encode(access, private_key, algorithm="RS256"),
+        "refresh_token": jwt.encode(refresh, private_key, algorithm="RS256"),
     }
 
+
 def verify_jwt(token):
-    public_key = get_public_key()
     try:
-        payload = jwt.decode(token, public_key, algorithms=['RS256'])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise Exception("Token expirado")
-    except jwt.InvalidTokenError:
-        raise Exception("Token inválido")
+        return jwt.decode(
+            token,
+            _load_key(settings.JWT_PUBLIC_KEY_PATH),
+            algorithms=["RS256"],
+            issuer="samr-auth-service",
+        )
+    except jwt.ExpiredSignatureError as exc:
+        raise TokenError("Token expirado") from exc
+    except jwt.InvalidTokenError as exc:
+        raise TokenError("Token inválido") from exc

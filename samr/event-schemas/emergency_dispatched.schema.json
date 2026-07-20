@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/emergency_dispatched.schema.json",
+  "title": "emergency.dispatched",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "emergency.dispatched"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "emergency_id",
+            "patient_id",
+            "triage_level"
+          ]
+        }
+      }
+    }
+  ]
+}

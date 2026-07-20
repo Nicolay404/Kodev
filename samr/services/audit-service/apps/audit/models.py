@@ -1,18 +1,27 @@
+import uuid
 from django.db import models
 
-class DecisionIA(models.Model):
-    # Campos base de auditoría inmutable (append-only)
-    solicitud_id = models.IntegerField()
-    evaluacion_id = models.IntegerField(null=True, blank=True)
-    decision = models.JSONField()
-    context = models.JSONField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Campos de revisión por DPD (Delegado de Protección de Datos)
-    reviewed = models.BooleanField(default=False)
-    review_notes = models.TextField(blank=True, null=True)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.IntegerField(null=True, blank=True)
 
-    def __str__(self):
-        return f"Audit Log {self.id} (Solicitud {self.solicitud_id})"
+class AuditLog(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    event_type = models.CharField(max_length=100)
+    actor_id = models.UUIDField(null=True, blank=True)
+    payload = models.JSONField()
+    ai_confidence = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True)
+    ai_explainability = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.pk and AuditLog.objects.filter(pk=self.pk).exists(): raise ValueError("audit_log es append-only")
+        return super().save(*args, **kwargs)
+
+
+class AuditReview(models.Model):
+    STATES = (("pendiente", "Pendiente"), ("revisado", "Revisado"), ("observado", "Observado"))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    audit_log_id = models.BigIntegerField(unique=True)
+    estado_revision = models.CharField(max_length=20, choices=STATES, default="pendiente")
+    revisado_por = models.UUIDField(null=True, blank=True)
+    comentario = models.TextField(null=True, blank=True)
+    fecha_revision = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

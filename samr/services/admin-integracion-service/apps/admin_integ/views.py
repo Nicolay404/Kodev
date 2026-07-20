@@ -1,55 +1,32 @@
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Center, Device
-from .serializers import CenterSerializer, DeviceSerializer
-from .permissions import DualAuthentication, IsSystemAdmin, IsServiceOrAdmin
 from events.publisher import publicar_evento
+from tasks.validate_center import validate_center_m2m
+from .models import Center, Device
+from .permissions import DualAuthentication, IsServiceOrAdmin, IsSystemAdmin
+from .serializers import CenterRegisterSerializer, CenterSerializer, DeviceRegisterSerializer, DeviceSerializer
+
 
 class CenterRegisterView(APIView):
-    authentication_classes = [DualAuthentication]
-    permission_classes = [IsSystemAdmin]
-
+    authentication_classes = [DualAuthentication]; permission_classes = [IsSystemAdmin]
     def post(self, request):
-        serializer = CenterSerializer(data=request.data)
-        if serializer.is_valid():
-            center = serializer.save()
-            publicar_evento('center.registered', {
-                'center_id': center.id,
-                'name': center.name
-            })
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = CenterRegisterSerializer(data=request.data); serializer.is_valid(raise_exception=True)
+        external = {key: serializer.validated_data[key] for key in ("license_number", "specialties")}
+        center = Center.objects.create(**{key: value for key, value in serializer.validated_data.items() if key not in external})
+        publicar_evento("center.registration_requested", {"center_id": str(center.id), "license_number": external["license_number"], "specialties": external["specialties"], "geo": {"latitude": str(center.latitude), "longitude": str(center.longitude)}})
+        validate_center_m2m.delay(str(center.id))
+        return Response(CenterSerializer(center).data, status=201)
+
 
 class AvailableCentersView(APIView):
-    authentication_classes = [DualAuthentication]
-    permission_classes = [IsServiceOrAdmin] # M2M (evaluacion-service) o Admin
+    authentication_classes = [DualAuthentication]; permission_classes = [IsServiceOrAdmin]
+    def get(self, request): return Response(CenterSerializer(Center.objects.filter(status="validated"), many=True).data)
 
-    def get(self, request):
-        # Filtra centros que tienen capacidad
-        centers = Center.objects.filter(is_active=True, max_capacity__gt=models.F('current_occupancy'))
-        serializer = CenterSerializer(centers, many=True)
-        return Response(serializer.data)
-        
-    def get(self, request):
-        # Import local to avoid circular dep if needed, but F is at top usually
-        from django.db.models import F
-        centers = Center.objects.filter(is_active=True, max_capacity__gt=F('current_occupancy'))
-        serializer = CenterSerializer(centers, many=True)
-        return Response(serializer.data)
 
 class DeviceRegisterView(APIView):
-    authentication_classes = [DualAuthentication]
-    permission_classes = [IsSystemAdmin]
-
+    authentication_classes = [DualAuthentication]; permission_classes = [IsSystemAdmin]
     def post(self, request):
-        serializer = DeviceSerializer(data=request.data)
-        if serializer.is_valid():
-            device = serializer.save()
-            publicar_evento('device.registered', {
-                'device_id': device.id,
-                'mac_address': device.mac_address,
-                'patient_id': device.patient_id
-            })
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = DeviceRegisterSerializer(data=request.data); serializer.is_valid(raise_exception=True)
+        device = Device.objects.create(patient_id=serializer.validated_data["patient_id"], device_type=serializer.validated_data["device_type"], registered_by=request.user.id)
+        publicar_evento("device.registered", {"device_id": str(device.id), "patient_id": str(device.patient_id), "device_type": device.device_type, "serial_number": serializer.validated_data["serial_number"]})
+        return Response(DeviceSerializer(device).data, status=201)

@@ -19,6 +19,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -74,8 +75,9 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'emergency-service'
+MVP_FIRST_AID_GUIDE = os.environ.get('MVP_FIRST_AID_GUIDE', 'Mantenga la calma y contacte al servicio de emergencias. Siga únicamente las indicaciones del personal autorizado.')
 
 RABBITMQ_EXCHANGE = 'samr.events'
 RABBITMQ_PUBLISH_KEYS = {
