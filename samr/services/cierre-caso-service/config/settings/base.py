@@ -19,6 +19,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -74,11 +75,11 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'cierre-caso-service'
 
 RABBITMQ_EXCHANGE = 'samr.events'
 RABBITMQ_PUBLISH_KEYS = {
     'caso.cerrado': 'caso.cerrado',
 }
-RABBITMQ_CONSUME_KEYS = []
+RABBITMQ_CONSUME_KEYS = ['teleconsult.closed', 'emergency.dispatched']

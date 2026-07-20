@@ -1,34 +1,13 @@
+import uuid
 import django.db.models.deletion
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
-
-    dependencies = [
-    ]
-
+    dependencies = []
     operations = [
-        migrations.CreateModel(
-            name='Evaluacion',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('solicitud_id', models.IntegerField(unique=True)),
-                ('riesgo_score', models.FloatField(default=0.0)),
-                ('recomendaciones', models.JSONField(default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Matching',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('centro_asignado', models.CharField(max_length=255)),
-                ('recursos', models.JSONField(default=list)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('evaluacion', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='matching', to='evaluacion_app.evaluacion')),
-            ],
-        ),
+        migrations.CreateModel(name="AvailableCenterCache", fields=[("center_id", models.UUIDField(primary_key=True, serialize=False)), ("nombre", models.CharField(max_length=255)), ("disponible", models.BooleanField(default=True))]),
+        migrations.CreateModel(name="Evaluacion", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("solicitud_id", models.UUIDField(unique=True)), ("nivel_riesgo", models.CharField(choices=[("critico", "Crítico"), ("alto", "Alto"), ("medio", "Medio"), ("bajo", "Bajo")], max_length=20)), ("fuentes_rag", models.JSONField(default=list)), ("created_at", models.DateTimeField(auto_now_add=True))]),
+        migrations.CreateModel(name="Matching", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("professional_id", models.UUIDField()), ("center_id", models.UUIDField()), ("score", models.DecimalField(decimal_places=2, max_digits=5)), ("evaluacion", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name="matching", to="evaluacion_app.evaluacion"))]),
     ]

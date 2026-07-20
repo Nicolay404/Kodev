@@ -1,19 +1,18 @@
+import uuid
 from django.db import models
 
-class IoTReading(models.Model):
-    timestamp = models.DateTimeField(auto_now_add=True)
-    device_id = models.CharField(max_length=255)
-    patient_id = models.IntegerField()
-    vitals = models.JSONField(default=dict)
 
-    def __str__(self):
-        return f"Reading from {self.device_id} at {self.timestamp}"
+class VitalSign(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    device_id = models.UUIDField()
+    patient_id = models.UUIDField()
+    value = models.JSONField()
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
 
 class Alert(models.Model):
-    detectada_anomalia = models.BooleanField(default=True)
-    patient_id = models.IntegerField()
-    tipo = models.CharField(max_length=100)
+    SEVERITIES = (("critical", "Critical"), ("high", "High"), ("medium", "Medium"), ("low", "Low"))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient_id = models.UUIDField()
+    severity = models.CharField(max_length=20, choices=SEVERITIES)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Alert {self.tipo} for patient {self.patient_id}"

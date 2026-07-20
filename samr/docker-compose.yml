@@ -13,6 +13,7 @@ x-django-service: &django-service
   environment:
     - RABBITMQ_URL=$RABBITMQ_URL
     - DB_PASSWORD=$DB_PASSWORD
+  restart: on-failure
   # Nota: health sólo funcionará una vez exista el command manage.py health en la Fase 3
   healthcheck:
     test: ["CMD-SHELL", "python manage.py health || exit 1"]
@@ -32,6 +33,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
     # No se expone el puerto al host
 
   redis:
@@ -86,6 +88,8 @@ services:
     environment:
       - API_GATEWAY_URL=https://nginx
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem
+      - VERIFY_GATEWAY_TLS=false
+      - BFF_ALLOWED_ORIGINS=http://localhost:3000
     volumes:
       - ./keys/public.pem:/keys/public.pem:ro
 
@@ -98,6 +102,7 @@ services:
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
       - JWT_PRIVATE_KEY_PATH=/keys/private.pem
+      - AUTH_LOCK_MINUTES=$AUTH_LOCK_MINUTES
     volumes:
       - ./keys:/keys:ro
 
@@ -105,6 +110,18 @@ services:
     <<: *django-service
     build: ./services/notification-service
     container_name: samr-notification
+    environment:
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - MVP_NOTIFICATION_BACKEND=$MVP_NOTIFICATION_BACKEND
+
+  notification-consumer:
+    <<: *django-service
+    build: ./services/notification-service
+    container_name: samr-notification-consumer
+    command: ["python", "manage.py", "consume_events"]
+    environment:
+      - RABBITMQ_URL=$RABBITMQ_URL
+      - MVP_NOTIFICATION_BACKEND=$MVP_NOTIFICATION_BACKEND
 
   patient-service:
     <<: *django-service
@@ -114,6 +131,7 @@ services:
       - DB_NAME=patient_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - PATIENT_DATA_KEY=$PATIENT_DATA_KEY
 
   solicitud-service:
     <<: *django-service
@@ -123,6 +141,9 @@ services:
       - DB_NAME=solicitud_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - REDIS_URL=$REDIS_URL
+      - MVP_FAQ_CONFIDENCE_THRESHOLD=$MVP_FAQ_CONFIDENCE_THRESHOLD
+      - MVP_CONSORTIUM_OUTCOME=$MVP_CONSORTIUM_OUTCOME
 
   monitoring-service:
     <<: *django-service
@@ -132,6 +153,9 @@ services:
       - DB_NAME=monitoring_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - REDIS_URL=$REDIS_URL
+      - MVP_DEVICE_SERVICE_TOKEN=$MVP_DEVICE_SERVICE_TOKEN
+      - MVP_VITAL_THRESHOLDS=$MVP_VITAL_THRESHOLDS
 
   evaluacion-service:
     <<: *django-service
@@ -141,6 +165,9 @@ services:
       - DB_NAME=evaluacion_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - MVP_DEFAULT_RISK_LEVEL=$MVP_DEFAULT_RISK_LEVEL
+      - MVP_CRITICAL_TERMS=$MVP_CRITICAL_TERMS
+      - MVP_HIGH_TERMS=$MVP_HIGH_TERMS
 
   teleconsult-service:
     <<: *django-service
@@ -159,6 +186,7 @@ services:
       - DB_NAME=emergency_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - MVP_FIRST_AID_GUIDE=$MVP_FIRST_AID_GUIDE
 
   cierre-caso-service:
     <<: *django-service
@@ -177,6 +205,8 @@ services:
       - DB_NAME=historial_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - REDIS_URL=$REDIS_URL
+      - PATIENT_SERVICE_URL=$PATIENT_SERVICE_URL
 
   audit-service:
     <<: *django-service
@@ -195,3 +225,95 @@ services:
       - DB_NAME=admin_db
       - RABBITMQ_URL=$RABBITMQ_URL
       - DB_PASSWORD=$DB_PASSWORD
+      - MVP_CENTER_VALIDATION_OUTCOME=$MVP_CENTER_VALIDATION_OUTCOME
+
+  solicitud-worker:
+    extends:
+      service: solicitud-service
+    container_name: samr-solicitud-worker
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on: [postgres, rabbitmq, redis]
+
+  solicitud-consumer:
+    extends:
+      service: solicitud-service
+    container_name: samr-solicitud-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq, redis]
+
+  monitoring-consumer:
+    extends:
+      service: monitoring-service
+    container_name: samr-monitoring-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq, redis]
+
+  evaluacion-worker:
+    extends:
+      service: evaluacion-service
+    container_name: samr-evaluacion-worker
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on: [postgres, rabbitmq]
+
+  evaluacion-consumer:
+    extends:
+      service: evaluacion-service
+    container_name: samr-evaluacion-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq]
+
+  teleconsult-consumer:
+    extends:
+      service: teleconsult-service
+    container_name: samr-teleconsult-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq]
+
+  emergency-consumer:
+    extends:
+      service: emergency-service
+    container_name: samr-emergency-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq]
+
+  cierre-caso-consumer:
+    extends:
+      service: cierre-caso-service
+    container_name: samr-cierre-caso-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq]
+
+  historial-worker:
+    extends:
+      service: historial-interop-service
+    container_name: samr-historial-worker
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on: [postgres, rabbitmq, redis]
+
+  historial-consumer:
+    extends:
+      service: historial-interop-service
+    container_name: samr-historial-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq, redis]
+
+  audit-worker:
+    extends:
+      service: audit-service
+    container_name: samr-audit-worker
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on: [postgres, rabbitmq]
+
+  audit-consumer:
+    extends:
+      service: audit-service
+    container_name: samr-audit-consumer
+    command: ["python", "manage.py", "consume_events"]
+    depends_on: [postgres, rabbitmq]
+
+  admin-integracion-worker:
+    extends:
+      service: admin-integracion-service
+    container_name: samr-admin-integracion-worker
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on: [postgres, rabbitmq]

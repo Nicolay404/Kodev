@@ -22,6 +22,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -62,11 +63,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'auth.User'
-# We should probably use 'auth_app.User' if we named our app 'auth_app'. If we named it 'auth', it will clash with django.contrib.auth.
-# Wait, if we use apps.auth, we can set label = 'auth_app' in apps.py.
-# Actually, the user asked for apps/auth/
-# I will set AUTH_USER_MODEL = 'auth_app.User' and configure apps/auth/apps.py later.
+AUTH_USER_MODEL = 'auth_app.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
@@ -97,5 +94,6 @@ REST_FRAMEWORK = {
 }
 
 # Configuración RabbitMQ
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'auth-service'
+AUTH_LOCK_MINUTES = int(os.environ.get('AUTH_LOCK_MINUTES', '10'))

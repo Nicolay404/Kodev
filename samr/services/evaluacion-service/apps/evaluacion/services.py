@@ -1,32 +1,33 @@
+"""Adaptadores deterministas del MVP; no constituyen decisión clínica."""
+from decimal import Decimal
+from django.conf import settings
+from .models import AvailableCenterCache
+
+
 def evaluate_risk(solicitud_data: dict) -> dict:
-    """
-    Simulación de evaluación de riesgo usando IA / RAG.
-    Devuelve un score y recomendaciones.
-    """
-    # En producción esto llamaría a un modelo ML o RAG
-    urgency = solicitud_data.get('urgency', 'low')
-    score = 0.5
-    if urgency == 'high':
-        score = 0.9
-    elif urgency == 'medium':
-        score = 0.7
-        
-    recomendaciones = {
-        'protocolo': 'Estándar',
-        'requiere_ambulancia': score > 0.8
-    }
-    
+    text = " ".join(solicitud_data.get("sintomas", [])).lower()
+    level = settings.MVP_DEFAULT_RISK_LEVEL
+    if any(term and term in text for term in settings.MVP_CRITICAL_TERMS):
+        level = "critico"
+    elif any(term and term in text for term in settings.MVP_HIGH_TERMS):
+        level = "alto"
     return {
-        'score': score,
-        'recomendaciones': recomendaciones
+        "nivel_riesgo": level,
+        "fuentes_rag": [{"source": "mvp_rules", "version": "1.0", "clinical_validation": False}],
+        "explainability": {"adapter": "mvp_keyword_rules", "clinical_validation": False},
     }
 
-def find_best_center(evaluacion_id: int) -> dict:
-    """
-    Encuentra el mejor centro disponible basado en la evaluación.
-    """
-    # Lógica simplificada
-    return {
-        'centro_asignado': 'Hospital General',
-        'recursos': ['cama', 'oxigeno']
-    }
+
+def find_best_center():
+    return AvailableCenterCache.objects.filter(disponible=True).order_by("nombre", "center_id").first()
+
+
+def mvp_matching_score():
+    return Decimal("100.00")
+
+
+def update_center_cache(event_type, payload):
+    if event_type == "center.validated":
+        AvailableCenterCache.objects.update_or_create(center_id=payload["center_id"], defaults={"nombre": payload["nombre"], "disponible": True})
+    elif event_type == "center.rejected":
+        AvailableCenterCache.objects.filter(center_id=payload["center_id"]).update(disponible=False)

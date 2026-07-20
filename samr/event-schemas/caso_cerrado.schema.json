@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/caso_cerrado.schema.json",
+  "title": "caso.cerrado",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "caso.cerrado"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "caso_id",
+            "patient_id",
+            "clinical_notes",
+            "integrity_hash",
+            "closed_at"
+          ]
+        }
+      }
+    }
+  ]
+}

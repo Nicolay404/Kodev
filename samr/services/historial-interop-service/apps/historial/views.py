@@ -1,59 +1,31 @@
-from rest_framework import status
+from requests import RequestException
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from .models import Historial, Consentimiento
-from .serializers import HistorialSerializer
+from .models import Historial
 from .permissions import JWTAuthentication
+from .serializers import HistorialSerializer
+from .services import compose_fhir_bundle, verify_sharing_consent
+
+
+def can_read(user, patient_id):
+    return (user.rol == "patient" and str(user.id) == str(patient_id)) or user.rol in {"professional", "nurse", "center_admin", "system_admin"}
+
 
 class HistorialView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
+    authentication_classes = [JWTAuthentication]; permission_classes = [IsAuthenticated]
     def get(self, request, patient_id):
-        user = request.user
-        # Validar permisos: un paciente solo puede ver su propio historial. Admin/Medical pueden ver cualquiera.
-        if user.rol == 'patient' and user.id != patient_id:
-            return Response({'error': 'Acceso denegado'}, status=status.HTTP_403_FORBIDDEN)
-            
-        try:
-            historial = Historial.objects.get(patient_id=patient_id)
-            serializer = HistorialSerializer(historial)
-            return Response(serializer.data)
-        except Historial.DoesNotExist:
-            return Response({'error': 'Historial no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        if not can_read(request.user, patient_id): return Response({"error": "Acceso denegado"}, status=403)
+        history = Historial.objects.filter(patient_id=patient_id).first()
+        return Response(HistorialSerializer(history).data) if history else Response({"error": "Historial no encontrado"}, status=404)
+
 
 class FHIRHistoryView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
+    authentication_classes = [JWTAuthentication]; permission_classes = [IsAuthenticated]
     def get(self, request, patient_id):
-        # Requiere consentimiento activo para exponer en FHIR (RNF-32, RNF-34)
+        if not can_read(request.user, patient_id): return Response({"error": "Acceso denegado"}, status=403)
         try:
-            consent = Consentimiento.objects.get(patient_id=patient_id)
-            if not consent.fhir_enabled:
-                return Response({'error': 'El paciente no ha dado su consentimiento para interoperabilidad FHIR'}, status=status.HTTP_403_FORBIDDEN)
-        except Consentimiento.DoesNotExist:
-            return Response({'error': 'Consentimiento no registrado'}, status=status.HTTP_403_FORBIDDEN)
-
-        try:
-            historial = Historial.objects.get(patient_id=patient_id)
-        except Historial.DoesNotExist:
-            return Response({'error': 'Historial no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Simular transformación básica a FHIR R4
-        fhir_bundle = {
-            "resourceType": "Bundle",
-            "type": "collection",
-            "entry": []
-        }
-        
-        for entry in historial.data:
-            fhir_bundle['entry'].append({
-                "resourceType": "Encounter",
-                "status": "finished",
-                "subject": {"reference": f"Patient/{patient_id}"},
-                "period": {"end": entry.get('closed_at')}
-            })
-            
-        return Response(fhir_bundle)
+            if not verify_sharing_consent(patient_id): return Response({"error": "Consentimiento de interoperabilidad no otorgado"}, status=403)
+        except RequestException: return Response({"error": "No fue posible verificar el consentimiento"}, status=503)
+        history = Historial.objects.filter(patient_id=patient_id).first()
+        return Response(compose_fhir_bundle(history), content_type="application/fhir+json") if history else Response({"error": "Historial no encontrado"}, status=404)

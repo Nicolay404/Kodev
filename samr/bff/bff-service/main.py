@@ -1,93 +1,53 @@
-import os
-import jwt
-import httpx
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException, Header
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+import os
+import httpx
+import jwt
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="BFF Service - SAMR")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "http://nginx")
+app = FastAPI(title="SAMR BFF", version="1.0")
+app.add_middleware(CORSMiddleware, allow_origins=[item for item in os.environ.get("BFF_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if item], allow_credentials=True, allow_methods=["GET"], allow_headers=["Authorization", "X-Request-ID"])
+API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "https://nginx")
 JWT_PUBLIC_KEY_PATH = os.environ.get("JWT_PUBLIC_KEY_PATH", "/keys/public.pem")
+VERIFY_GATEWAY_TLS = os.environ.get("VERIFY_GATEWAY_TLS", "true").lower() == "true"
+http_client = None
 
-# Global variables to reuse HTTP client
-http_client = httpx.AsyncClient(verify=False) # Internal verification only
 
 @app.on_event("startup")
-async def startup_event():
+async def startup():
     global http_client
-    http_client = httpx.AsyncClient(verify=False)
+    http_client = httpx.AsyncClient(base_url=API_GATEWAY_URL, verify=VERIFY_GATEWAY_TLS, timeout=5.0)
+
 
 @app.on_event("shutdown")
-async def shutdown_event():
-    await http_client.aclose()
+async def shutdown():
+    if http_client: await http_client.aclose()
+
 
 def verify_token(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no provisto o inválido")
-    
-    token = authorization.split(" ")[1]
-    
+    if not authorization or not authorization.startswith("Bearer "): raise HTTPException(401, "Token no provisto")
+    token = authorization[7:]
     try:
-        with open(JWT_PUBLIC_KEY_PATH, "rb") as key_file:
-            public_key = serialization.load_pem_public_key(
-                key_file.read(),
-                backend=default_backend()
-            )
-        payload = jwt.decode(token, public_key, algorithms=['RS256'])
-        return payload, token
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
+        with open(JWT_PUBLIC_KEY_PATH, "rb") as key_file: key = serialization.load_pem_public_key(key_file.read())
+        payload = jwt.decode(
+            token, key, algorithms=["RS256"], issuer="samr-auth-service"
+        )
+        if payload.get("type") != "access": raise ValueError("Tipo inválido")
+        return token
+    except (OSError, jwt.InvalidTokenError, ValueError) as exc: raise HTTPException(401, "Token inválido") from exc
+
 
 @app.get("/health")
-async def health():
-    return {"status": "ok"}
+async def health(): return {"status": "ok"}
+
 
 @app.get("/dashboard/")
-async def get_dashboard(auth_data: tuple = Depends(verify_token)):
-    payload, token = auth_data
-    headers = {"Authorization": f"Bearer {token}"}
-    
-    # Agregar llamadas simultáneas a los microservicios a través del Gateway
-    patient_id = payload.get("usuario_id") # Por simplicidad asumimos que es el del token
-    rol = payload.get("rol")
-    
-    # URL de los endpoints internos a agregar
-    urls = {}
-    if rol == 'patient':
-        urls = {
-            "profile": f"{API_GATEWAY_URL}/api/patients/me/",
-            "alerts": f"{API_GATEWAY_URL}/api/monitoring/alerts/",
-        }
-    else:
-        urls = {
-            "emergencies": f"{API_GATEWAY_URL}/api/emergencies/",
-            "alerts": f"{API_GATEWAY_URL}/api/monitoring/alerts/",
-        }
-    
-    async def fetch(key, url):
+async def dashboard(token: str = Depends(verify_token)):
+    endpoints = {"patient": "/api/patients/me/", "evaluacion": "/api/evaluacion/mis-casos/", "monitoring": "/api/monitoring/alerts/", "atencion": "/api/cierre-caso/mis-casos/"}
+    async def fetch(name, path):
         try:
-            response = await http_client.get(url, headers=headers)
-            if response.status_code == 200:
-                return key, response.json()
-            return key, {"error": response.status_code}
-        except Exception as e:
-            return key, {"error": str(e)}
-
-    # Ejecutar peticiones en paralelo
-    tasks = [fetch(key, url) for key, url in urls.items()]
-    results = await asyncio.gather(*tasks)
-    
-    dashboard_data = {key: data for key, data in results}
-    return JSONResponse(content=dashboard_data)
+            response = await http_client.get(path, headers={"Authorization": f"Bearer {token}"})
+            return name, response.json() if response.status_code == 200 else {"error": response.status_code}
+        except httpx.HTTPError: return name, {"error": "service_unavailable"}
+    return dict(await asyncio.gather(*(fetch(name, path) for name, path in endpoints.items())))

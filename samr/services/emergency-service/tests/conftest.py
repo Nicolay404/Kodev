@@ -2,6 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 import jwt
 import datetime
+import uuid
 from django.conf import settings
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -28,9 +29,10 @@ def mock_jwt_keys(monkeypatch, tmp_path, rsa_keys):
 def api_client():
     return APIClient()
 
-def _create_jwt(private_key, rol, user_id=100):
+def _create_jwt(private_key, rol, user_id=None):
+    user_id = user_id or uuid.uuid4()
     payload = {
-        'usuario_id': user_id,
+        'usuario_id': str(user_id),
         'email': f'{rol}@test.com',
         'rol': rol,
         'type': 'access',
@@ -44,4 +46,4 @@ def auth_jwt_patient(rsa_keys):
     
 @pytest.fixture
 def auth_jwt_medical(rsa_keys):
-    return _create_jwt(rsa_keys[0], 'medical', user_id=200)
+    return _create_jwt(rsa_keys[0], 'professional')

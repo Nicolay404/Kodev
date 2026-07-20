@@ -1,64 +1,83 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from apps.auth.models import User, LoginAttempt
+
+from apps.auth.models import User
+
 
 @pytest.mark.django_db
 class TestAuthAPI:
-    
     def test_register(self, api_client):
-        url = reverse('register')
-        data = {'email': 'newuser@example.com', 'password': 'securepassword'}
-        response = api_client.post(url, data, format='json')
+        response = api_client.post(
+            reverse("register"),
+            {"email": "newuser@example.com", "password": "secure123"},
+            format="json",
+        )
         assert response.status_code == status.HTTP_201_CREATED
-        assert 'email' in response.data
-        assert User.objects.filter(email='newuser@example.com').exists()
+        assert User.objects.filter(email="newuser@example.com").exists()
 
-    def test_login(self, api_client, create_user, user_data):
-        url = reverse('login')
-        response = api_client.post(url, user_data, format='json')
+    def test_register_cannot_escalate_role(self, api_client):
+        response = api_client.post(
+            reverse("register"),
+            {
+                "email": "patient@example.com",
+                "password": "secure123",
+                "role": "system_admin",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert User.objects.get(email="patient@example.com").role == "patient"
+
+    def test_register_rejects_non_alphanumeric_password(self, api_client):
+        response = api_client.post(
+            reverse("register"),
+            {"email": "weak@example.com", "password": "onlyletters"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @patch("apps.auth.views.publicar_evento")
+    def test_login(self, mock_publish, api_client, create_user, user_data):
+        response = api_client.post(reverse("login"), user_data, format="json")
         assert response.status_code == status.HTTP_200_OK
-        assert 'access_token' in response.data
-        assert 'refresh_token' in response.data
-        
-        # Verify attempt was logged
-        assert LoginAttempt.objects.filter(user=create_user, success=True).exists()
+        assert "access_token" in response.data
+        assert "refresh_token" in response.data
+        create_user.refresh_from_db()
+        assert create_user.failed_attempts == 0
+        mock_publish.assert_called_once()
 
-    def test_refresh_token(self, api_client, create_user, user_data):
-        # 1. Login to get token
-        login_url = reverse('login')
-        login_response = api_client.post(login_url, user_data, format='json')
-        refresh_token = login_response.data['refresh_token']
-        
-        # 2. Refresh token
-        refresh_url = reverse('token_refresh')
-        response = api_client.post(refresh_url, {'refresh_token': refresh_token}, format='json')
+    @patch("apps.auth.views.publicar_evento")
+    def test_refresh_token(self, mock_publish, api_client, create_user, user_data):
+        login = api_client.post(reverse("login"), user_data, format="json")
+        response = api_client.post(
+            reverse("token_refresh"),
+            {"refresh_token": login.data["refresh_token"]},
+            format="json",
+        )
         assert response.status_code == status.HTTP_200_OK
-        assert 'access_token' in response.data
-        assert 'refresh_token' in response.data
+        assert "access_token" in response.data
 
-    def test_me(self, api_client, create_user, user_data):
-        # 1. Login
-        login_response = api_client.post(reverse('login'), user_data, format='json')
-        access_token = login_response.data['access_token']
-        
-        # 2. Get profile
-        url = reverse('me')
-        api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
-        response = api_client.get(url)
+    @patch("apps.auth.views.publicar_evento")
+    def test_me(self, mock_publish, api_client, create_user, user_data):
+        login = api_client.post(reverse("login"), user_data, format="json")
+        api_client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {login.data['access_token']}"
+        )
+        response = api_client.get(reverse("me"))
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['email'] == user_data['email']
+        assert response.data["email"] == user_data["email"]
 
-    def test_login_blocked(self, api_client, create_user, user_data):
-        url = reverse('login')
-        wrong_data = {'email': user_data['email'], 'password': 'wrongpassword'}
-        
-        # 5 failed attempts
+    @patch("apps.auth.views.publicar_evento")
+    def test_login_blocked(self, mock_publish, api_client, create_user, user_data):
+        wrong = {"email": user_data["email"], "password": "wrong123"}
         for _ in range(5):
-            response = api_client.post(url, wrong_data, format='json')
+            response = api_client.post(reverse("login"), wrong, format="json")
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
-            
-        # 6th attempt, even with correct password, should be blocked
-        response = api_client.post(url, user_data, format='json')
+        response = api_client.post(reverse("login"), user_data, format="json")
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert response.data['error'] == 'Cuenta bloqueada temporalmente'
+        create_user.refresh_from_db()
+        assert create_user.failed_attempts == 5
+        assert create_user.locked_until is not None

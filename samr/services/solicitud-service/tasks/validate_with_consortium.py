@@ -1,56 +1,27 @@
+import logging
 from celery import shared_task
-import requests
-from apps.solicitud.models import Solicitud, ConsorcioValidationLog
+from apps.solicitud.models import Solicitud
+from apps.solicitud.services import get_consortium_adapter
 from events.publisher import publicar_evento
+
+logger = logging.getLogger(__name__)
+
 
 @shared_task
 def validate_with_consortium(solicitud_id):
     try:
         solicitud = Solicitud.objects.get(id=solicitud_id)
     except Solicitud.DoesNotExist:
-        return
-
-    payload = {
-        'patient_id': solicitud.patient_id,
-        'description': solicitud.description,
-        'symptoms': solicitud.symptoms,
-        'urgency': solicitud.urgency,
-    }
-
+        return "not_found"
     try:
-        # Llama API del Consorcio con timeout de 5s (RNF-07)
-        response = requests.post('http://consorcio/validate', json=payload, timeout=5.0)
-        
-        if response.status_code == 200:
-            solicitud.estado = 'validada'
-            solicitud.consorcio_validation_id = response.json().get('validation_id', 'unknown')
-            solicitud.save()
-            
-            ConsorcioValidationLog.objects.create(solicitud=solicitud, status='OK', response=response.json())
-            
-            publicar_evento('solicitud.validada', {
-                'solicitud_id': solicitud.id,
-                'patient_id': solicitud.patient_id,
-                'urgency': solicitud.urgency
-            })
-        else:
-            solicitud.estado = 'rechazada'
-            solicitud.save()
-            
-            ConsorcioValidationLog.objects.create(solicitud=solicitud, status='REJECTED', response={'status_code': response.status_code})
-            
-            publicar_evento('solicitud.rechazada', {
-                'solicitud_id': solicitud.id,
-                'patient_id': solicitud.patient_id,
-                'reason': 'Consortium rejected'
-            })
-            
-    except requests.exceptions.Timeout:
-        solicitud.estado = 'pendiente_reintento'
-        solicitud.save()
-        ConsorcioValidationLog.objects.create(solicitud=solicitud, status='TIMEOUT', response=None)
-        
-    except requests.exceptions.RequestException as e:
-        solicitud.estado = 'pendiente_reintento'
-        solicitud.save()
-        ConsorcioValidationLog.objects.create(solicitud=solicitud, status='ERROR', response={'error': str(e)})
+        result = get_consortium_adapter().validate(solicitud)
+    except (TimeoutError, ConnectionError) as exc:
+        solicitud.estado = "pendiente_reintento"
+        solicitud.save(update_fields=["estado"])
+        logger.warning("Validación M2M pendiente de reintento: %s", exc)
+        return "pending_retry"
+    solicitud.estado = "validada" if result.accepted else "rechazada"
+    solicitud.save(update_fields=["estado"])
+    if result.accepted:
+        publicar_evento("solicitud.validada", {"solicitud_id": str(solicitud.id), "patient_id": str(solicitud.patient_id), "sintomas": solicitud.sintomas, "datos_biomedicos": solicitud.datos_biomedicos})
+    return solicitud.estado

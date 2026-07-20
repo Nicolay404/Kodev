@@ -3,5 +3,5 @@ from .views import PatientMeView, PatientSummaryView
 
 urlpatterns = [
     path('me/', PatientMeView.as_view(), name='patient_me'),
-    path('<int:pk>/summary/', PatientSummaryView.as_view(), name='patient_summary'),
+    path('<uuid:pk>/summary/', PatientSummaryView.as_view(), name='patient_summary'),
 ]

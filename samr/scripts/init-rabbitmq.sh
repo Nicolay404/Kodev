@@ -35,10 +35,10 @@ for svc in "${SERVICES[@]}"; do
     QUEUE_NAME="${svc}.queue"
     DLQ_NAME="${svc}.queue.dlq"
     
-    # Crear Cola Principal (con DLX)
+    # Quorum queue: RabbitMQ limita declarativamente a tres entregas antes del DLQ.
     curl -s -u guest:guest -X PUT "$RABBITMQ_API/queues/$VHOST/$QUEUE_NAME" \
         -H "content-type:application/json" \
-        -d '{"auto_delete":false,"durable":true,"arguments":{"x-dead-letter-exchange":"samr.events.dlx"}}'
+        -d "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-queue-type\":\"quorum\",\"x-delivery-limit\":3,\"x-dead-letter-exchange\":\"samr.events.dlx\",\"x-dead-letter-routing-key\":\"$QUEUE_NAME\"}}"
         
     # Crear DLQ
     curl -s -u guest:guest -X PUT "$RABBITMQ_API/queues/$VHOST/$DLQ_NAME" \
@@ -48,7 +48,7 @@ for svc in "${SERVICES[@]}"; do
     # Bind DLQ a DLX con routing key del servicio
     curl -s -u guest:guest -X POST "$RABBITMQ_API/bindings/$VHOST/e/samr.events.dlx/q/$DLQ_NAME" \
         -H "content-type:application/json" \
-        -d '{"routing_key":"#"}'
+        -d "{\"routing_key\":\"$QUEUE_NAME\"}"
 done
 
 # Función helper para bindings
@@ -61,9 +61,14 @@ bind_queue() {
 }
 
 # Aplicar bindings específicos basados en CORE_SERVICES.md
-bind_queue "solicitud-service.queue" "solicitud.creada"
+bind_queue "solicitud-service.queue" "vitals.critical_detected"
 bind_queue "evaluacion-service.queue" "solicitud.validada"
 bind_queue "evaluacion-service.queue" "vitals.critical_detected"
+bind_queue "evaluacion-service.queue" "riesgo.evaluado"
+bind_queue "evaluacion-service.queue" "matching.fallido"
+bind_queue "evaluacion-service.queue" "center.validated"
+bind_queue "evaluacion-service.queue" "center.rejected"
+bind_queue "monitoring-service.queue" "device.registered"
 bind_queue "teleconsult-service.queue" "recursos.asignados"
 bind_queue "teleconsult-service.queue" "vity.escalation_requested"
 bind_queue "emergency-service.queue" "vitals.critical_detected"
@@ -74,10 +79,13 @@ bind_queue "cierre-caso-service.queue" "emergency.dispatched"
 bind_queue "historial-interop-service.queue" "caso.cerrado"
 bind_queue "audit-service.queue" "#" # wildcard
 bind_queue "notification-service.queue" "auth.account_locked"
+bind_queue "notification-service.queue" "vitals.critical_detected"
+bind_queue "notification-service.queue" "vity.escalation_requested"
+bind_queue "notification-service.queue" "recursos.asignados"
+bind_queue "notification-service.queue" "center.validated"
+bind_queue "notification-service.queue" "center.rejected"
 bind_queue "notification-service.queue" "emergency.created"
+bind_queue "notification-service.queue" "emergency.dispatched"
 bind_queue "notification-service.queue" "teleconsult.session_started"
-
-# Nota: El reintento de 3 intentos se maneja en el consumer.py (contador en headers del mensaje),
-# no en RabbitMQ nativo, ya que RabbitMQ no soporta x-max-retries de forma nativa.
 
 echo "RabbitMQ inicializado."

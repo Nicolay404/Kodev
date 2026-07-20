@@ -1,32 +1,11 @@
+import uuid
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
-
-    dependencies = [
-    ]
-
+    dependencies = []
     operations = [
-        migrations.CreateModel(
-            name='Alert',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('detectada_anomalia', models.BooleanField(default=True)),
-                ('patient_id', models.IntegerField()),
-                ('tipo', models.CharField(max_length=100)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='IoTReading',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('device_id', models.CharField(max_length=255)),
-                ('patient_id', models.IntegerField()),
-                ('vitals', models.JSONField(default=dict)),
-            ],
-        ),
+        migrations.CreateModel(name="Alert", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("patient_id", models.UUIDField()), ("severity", models.CharField(choices=[("critical", "Critical"), ("high", "High"), ("medium", "Medium"), ("low", "Low")], max_length=20)), ("created_at", models.DateTimeField(auto_now_add=True))]),
+        migrations.CreateModel(name="VitalSign", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("device_id", models.UUIDField()), ("patient_id", models.UUIDField()), ("value", models.JSONField()), ("recorded_at", models.DateTimeField(auto_now_add=True))]),
     ]

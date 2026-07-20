@@ -144,3 +144,45 @@ Desde `samr/`, ejecuta pytest dentro del contenedor del servicio que quieras val
 ```bash
 docker compose exec auth-service python -m pytest -q
 ```
+
+## Backend — cifrado de datos de paciente
+
+`patient-service` requiere `PATIENT_DATA_KEY`. El valor de `.env.example` es exclusivamente local; genera una clave Fernet propia para ambientes compartidos o productivos.
+
+## Backend — simuladores MVP
+
+`MVP_FAQ_CONFIDENCE_THRESHOLD` controla el umbral de recuperación FAQ y `MVP_CONSORTIUM_OUTCOME` permite simular `validated`, `rejected` o `timeout`. Redis conserva respuestas FAQ durante 60 segundos mediante `REDIS_URL`. Estas opciones solo sustituyen integraciones externas durante el MVP.
+
+Para IoT, registra primero el dispositivo mediante M4 y usa `MVP_DEVICE_SERVICE_TOKEN` como `X-Service-Token`. `MVP_VITAL_THRESHOLDS` contiene reglas técnicas simuladas; no son parámetros clínicos de producción.
+
+M2 usa `MVP_DEFAULT_RISK_LEVEL` y listas opcionales `MVP_CRITICAL_TERMS`/`MVP_HIGH_TERMS`. El resultado incluye trazabilidad `mvp_rules` y `clinical_validation=false`.
+
+M3 genera una guía de seguridad no clínica desde `MVP_FIRST_AID_GUIDE`; la guía predeterminada solo pide contactar a emergencias y seguir al personal autorizado.
+
+M4 compone localmente un Bundle FHIR y verifica `consent_sharing` por M2M usando `PATIENT_SERVICE_URL`; no transmite datos a MSP/IESS en el modo MVP.
+
+La validación de centros usa `MVP_CENTER_VALIDATION_OUTCOME=validated|rejected`. `serial_number` se transporta en el evento de alta, pero no se persiste porque no forma parte del esquema `devices` aprobado.
+
+La tarea `validate_center_m2m` se ejecuta con Celery; el broker es el mismo `RABBITMQ_URL` del resto del backend.
+
+Para el BFF local usa `BFF_ALLOWED_ORIGINS=http://localhost:3000` y `VERIFY_GATEWAY_TLS=false`. En ambientes compartidos debe ser `true`.
+
+`MVP_NOTIFICATION_BACKEND=log` conserva notificaciones como simulación trazable. Para probar el flujo deben estar activos tanto `notification-service` como `notification-consumer`.
+
+## Backend — arranque automático vigente del MVP
+
+El comando vigente desde `samr/` es:
+
+```bash
+docker compose up -d --build
+```
+
+En la primera ejecución, PostgreSQL monta `scripts/init-db.sh` y crea exactamente las 11 bases. Cada API aplica sus migraciones automáticamente antes de iniciar Daphne o Gunicorn. Los consumidores crean sus colas quorum, bindings y DLQ al conectarse; `scripts/init-rabbitmq.sh` queda disponible para una declaración administrativa explícita, pero no es requisito del arranque local.
+
+Los workers Celery de solicitud, evaluación, historial, auditoría, administración y notificaciones usan colas separadas y concurrencia 1 en el MVP. Para inspeccionar todos los procesos:
+
+```bash
+docker compose ps
+```
+
+Las dependencias incorporadas son `celery==5.3.6` para `admin-integracion-service` y `redis==5.0.3` para `solicitud-service` e `historial-interop-service`; se instalan al reconstruir las imágenes.

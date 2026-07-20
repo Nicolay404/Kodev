@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/center_rejected.schema.json",
+  "title": "center.rejected",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "center.rejected"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "center_id",
+            "nombre",
+            "motivo"
+          ]
+        }
+      }
+    }
+  ]
+}

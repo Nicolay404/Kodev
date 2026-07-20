@@ -1,0 +1,1 @@
+"""Middleware compartido de SAMR."""

@@ -1,68 +1,44 @@
-from rest_framework import status
+from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from django.utils import timezone
-from .models import Caso
-from .serializers import CasoSerializer
-from .permissions import JWTAuthentication
 from events.publisher import publicar_evento
+from .models import Caso
+from .permissions import JWTAuthentication
+from .serializers import CasoSerializer, CloseCaseSerializer
+from .services import calculate_integrity_hash, verify_case
+
 
 class CierreCasoView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-
     def post(self, request, caso_id):
-        # Solamente personal médico o admin puede cerrar
-        user = request.user
-        if getattr(user, 'rol', None) not in ['medical', 'admin']:
-            return Response({'error': 'No tiene permisos para cerrar casos'}, status=status.HTTP_403_FORBIDDEN)
-            
-        try:
-            caso = Caso.objects.get(id=caso_id)
-        except Caso.DoesNotExist:
-            return Response({'error': 'Caso no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-            
-        if caso.status == 'closed':
-            return Response({'error': 'Este caso ya se encuentra cerrado'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Validar integridad: que existan notas si es requerido (RNF-28)
-        notes = request.data.get('notes', '')
-        if not notes and not caso.notes:
-            return Response({'error': 'Las notas de cierre son obligatorias'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        if notes:
-            caso.notes = notes
-            
-        caso.status = 'closed'
-        caso.closed_at = timezone.now()
-        caso.save()
-        
-        # Publicar evento para M4 (historial-interop-service)
-        publicar_evento('caso.cerrado', {
-            'caso_id': caso.id,
-            'patient_id': caso.patient_id,
-            'closed_at': caso.closed_at.isoformat(),
-            'notes': caso.notes
-        })
-        
-        serializer = CasoSerializer(caso)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.user.rol != "professional": return Response({"error": "Solo un profesional puede cerrar casos"}, status=403)
+        case = Caso.objects.filter(id=caso_id).first()
+        if not case: return Response({"error": "Caso no encontrado"}, status=404)
+        if case.status == "closed": return Response({"error": "Caso ya cerrado"}, status=400)
+        serializer = CloseCaseSerializer(data=request.data); serializer.is_valid(raise_exception=True)
+        case.clinical_notes = serializer.validated_data["clinical_notes"]
+        readiness = verify_case(case)
+        if not readiness["ready_to_close"]: return Response({"error": "El caso no tiene una fuente de atención íntegra", "verification": readiness}, status=409)
+        case.integrity_hash = calculate_integrity_hash(case); case.status = "closed"; case.closed_at = timezone.now()
+        case.save(update_fields=["clinical_notes", "integrity_hash", "status", "closed_at"])
+        publicar_evento("caso.cerrado", {"caso_id": str(case.id), "patient_id": str(case.patient_id), "teleconsult_id": str(case.teleconsult_id) if case.teleconsult_id else None, "emergency_id": str(case.emergency_id) if case.emergency_id else None, "clinical_notes": case.clinical_notes, "integrity_hash": case.integrity_hash, "closed_at": case.closed_at.isoformat()})
+        return Response(CasoSerializer(case).data)
+
 
 class VerificarCasoView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-
     def get(self, request, caso_id):
-        try:
-            caso = Caso.objects.get(id=caso_id)
-        except Caso.DoesNotExist:
-            return Response({'error': 'Caso no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-            
-        # Lógica para verificar integridad RNF-28
-        ready_to_close = bool(caso.notes)
-        return Response({
-            'caso_id': caso.id,
-            'status': caso.status,
-            'ready_to_close': ready_to_close
-        })
+        if request.user.rol not in {"professional", "center_admin", "system_admin"}: return Response({"error": "Permiso denegado"}, status=403)
+        case = Caso.objects.filter(id=caso_id).first()
+        return Response({"error": "Caso no encontrado"}, status=404) if not case else Response({"caso_id": str(case.id), "status": case.status, **verify_case(case)})
+
+
+class MisCasosView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        cases = Caso.objects.filter(patient_id=request.user.id).order_by("-closed_at") if request.user.rol == "patient" else Caso.objects.order_by("-closed_at")
+        return Response(CasoSerializer(cases[:50], many=True).data)

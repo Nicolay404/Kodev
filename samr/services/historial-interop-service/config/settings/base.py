@@ -20,6 +20,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'middleware.security.RequestSecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,8 +76,11 @@ REST_FRAMEWORK = {
     ],
 }
 
-RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/%2F')
 SERVICE_NAME = 'historial-interop-service'
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+PATIENT_SERVICE_URL = os.environ.get('PATIENT_SERVICE_URL', 'http://patient-service:8002')
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
 
 # ============================================================================
 # CELERY CONFIGURATION
@@ -86,6 +90,9 @@ CELERY_RESULT_BACKEND = 'rpc://'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_DEFAULT_QUEUE = 'historial-interop-service.celery'
+CELERY_TASK_DEFAULT_EXCHANGE = 'historial-interop-service.celery'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'historial-interop-service.celery'
 CELERY_TIMEZONE = 'UTC'
 
 RABBITMQ_EXCHANGE = 'samr.events'

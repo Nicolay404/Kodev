@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/center_registration_requested.schema.json",
+  "title": "center.registration_requested",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "center.registration_requested"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "center_id",
+            "license_number",
+            "specialties",
+            "geo"
+          ]
+        }
+      }
+    }
+  ]
+}

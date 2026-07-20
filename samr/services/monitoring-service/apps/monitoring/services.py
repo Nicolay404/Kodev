@@ -1,21 +1,43 @@
-def detect_anomalies(vitals: dict) -> list:
-    """
-    Reglas simples en memoria para detectar anomalías.
-    vitals format: {'heart_rate': int, 'blood_pressure_sys': int, 'blood_pressure_dia': int, 'oxygen_level': int}
-    """
+"""Reglas MVP configurables; no son umbrales clínicos de producción."""
+import json
+import logging
+from django.conf import settings
+from django.core.cache import cache
+from redis import Redis
+from redis.exceptions import RedisError
+
+logger = logging.getLogger(__name__)
+
+
+def register_device(payload):
+    cache.set(f"registered_device:{payload['device_id']}", str(payload["patient_id"]), timeout=None)
+
+
+def is_device_registered(device_id, patient_id):
+    return cache.get(f"registered_device:{device_id}") == str(patient_id)
+
+
+def detect_anomalies(value: dict) -> list[str]:
+    measurements = value.get("measurements", {})
+    thresholds = settings.MVP_VITAL_THRESHOLDS
     anomalies = []
-    
-    hr = vitals.get('heart_rate')
-    if hr and (hr < 50 or hr > 110):
-        anomalies.append('Abnormal Heart Rate')
-        
-    oxy = vitals.get('oxygen_level')
-    if oxy and oxy < 90:
-        anomalies.append('Low Oxygen')
-        
-    sys = vitals.get('blood_pressure_sys')
-    dia = vitals.get('blood_pressure_dia')
-    if sys and dia and (sys > 180 or dia > 120):
-        anomalies.append('Hypertensive Crisis')
-        
+    for name, limits in thresholds.items():
+        measured = measurements.get(name)
+        if measured is None:
+            continue
+        if "min" in limits and measured < limits["min"]:
+            anomalies.append(f"{name}:below_min")
+        if "max" in limits and measured > limits["max"]:
+            anomalies.append(f"{name}:above_max")
     return anomalies
+
+
+def cache_reading(reading):
+    try:
+        client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+        key = f"vitals:{reading.patient_id}"
+        client.lpush(key, json.dumps({"id": str(reading.id), "device_id": str(reading.device_id), "value": reading.value, "recorded_at": reading.recorded_at.isoformat()}))
+        client.ltrim(key, 0, 49)
+        client.expire(key, 120)
+    except RedisError:
+        logger.exception("No fue posible actualizar el cache de signos vitales")

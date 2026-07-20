@@ -11,7 +11,7 @@ INSTALLED_APPS = [
     'tasks',
 ]
 
-MIDDLEWARE = []
+MIDDLEWARE = ['middleware.security.RequestSecurityMiddleware']
 
 ROOT_URLCONF = ''
 
@@ -30,15 +30,25 @@ RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitm
 # ============================================================================
 CELERY_BROKER_URL = RABBITMQ_URL
 CELERY_RESULT_BACKEND = 'rpc://'
+MVP_NOTIFICATION_BACKEND = os.environ.get('MVP_NOTIFICATION_BACKEND', 'log')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_DEFAULT_QUEUE = 'notification-service.celery'
+CELERY_TASK_DEFAULT_EXCHANGE = 'notification-service.celery'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'notification-service.celery'
 
 RABBITMQ_EXCHANGE = 'samr.events'
-RABBITMQ_QUEUE_NOTIFICATION = 'notification_service_queue'
+RABBITMQ_QUEUE_NOTIFICATION = 'notification-service.queue'
 RABBITMQ_CONSUME_KEYS = [
-    'solicitud.validada',
+    'auth.account_locked',
+    'vitals.critical_detected',
+    'vity.escalation_requested',
+    'recursos.asignados',
+    'center.validated',
+    'center.rejected',
+    'emergency.created',
     'emergency.dispatched',
-    'atencion.iniciada',
+    'teleconsult.session_started',
 ]

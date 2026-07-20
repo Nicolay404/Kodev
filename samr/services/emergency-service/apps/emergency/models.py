@@ -1,18 +1,18 @@
+import uuid
 from django.db import models
 
+
 class Emergency(models.Model):
-    STATUS_CHOICES = (
-        ('reported', 'Reported'),
-        ('dispatched', 'Dispatched'),
-        ('resolved', 'Resolved'),
-    )
+    STATUS_CHOICES = (("pending", "Pending"), ("dispatched", "Dispatched"), ("closed", "Closed"))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient_id = models.UUIDField()
+    triage_level = models.CharField(max_length=20)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    patient_id = models.IntegerField()
-    description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='reported')
-    location = models.JSONField(default=dict)
-    reported_at = models.DateTimeField(auto_now_add=True)
-    dispatched_at = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return f"Emergency for patient {self.patient_id} - {self.status}"
+class FirstAidGuide(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    emergency = models.ForeignKey(Emergency, related_name="guides", on_delete=models.CASCADE)
+    contenido = models.TextField()
+    fecha_generacion = models.DateTimeField(auto_now_add=True)

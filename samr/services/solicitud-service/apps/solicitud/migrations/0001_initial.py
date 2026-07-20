@@ -1,57 +1,19 @@
-import django.db.models.deletion
+import uuid
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
-
-    dependencies = [
-    ]
-
+    dependencies = []
     operations = [
-        migrations.CreateModel(
-            name='Conversation',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('patient_id', models.IntegerField()),
-                ('messages', models.JSONField(default=list)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='FAQ',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('question', models.CharField(max_length=500)),
-                ('answer', models.TextField()),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Solicitud',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('patient_id', models.IntegerField()),
-                ('description', models.TextField()),
-                ('symptoms', models.JSONField(default=list)),
-                ('urgency', models.CharField(choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')], max_length=20)),
-                ('estado', models.CharField(choices=[('pendiente', 'Pendiente'), ('validada', 'Validada'), ('rechazada', 'Rechazada'), ('pendiente_reintento', 'Pendiente Reintento')], default='pendiente', max_length=25)),
-                ('consorcio_validation_id', models.CharField(blank=True, max_length=255, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='ConsorcioValidationLog',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(max_length=100)),
-                ('response', models.JSONField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('solicitud', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='validation_logs', to='solicitud_app.solicitud')),
-            ],
-        ),
+        migrations.CreateModel(name="Conversation", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("patient_id", models.UUIDField()), ("messages", models.JSONField(default=list)), ("created_at", models.DateTimeField(auto_now_add=True))]),
+        migrations.CreateModel(name="FAQ", fields=[("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)), ("question", models.TextField()), ("answer", models.TextField()), ("updated_at", models.DateTimeField(auto_now=True))]),
+        migrations.CreateModel(name="Solicitud", fields=[
+            ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+            ("patient_id", models.UUIDField()), ("sintomas", models.JSONField(default=list)),
+            ("datos_biomedicos", models.JSONField(blank=True, default=dict)),
+            ("fuente", models.CharField(choices=[("chatbot", "Chatbot"), ("iot_anomalia", "IoT anomaly"), ("manual", "Manual")], default="chatbot", max_length=20)),
+            ("estado", models.CharField(choices=[("pendiente", "Pendiente"), ("validada", "Validada"), ("rechazada", "Rechazada"), ("pendiente_reintento", "Pendiente reintento")], default="pendiente", max_length=20)),
+            ("created_at", models.DateTimeField(auto_now_add=True)),
+        ]),
     ]

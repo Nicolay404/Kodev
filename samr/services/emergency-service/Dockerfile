@@ -20,4 +20,4 @@ RUN chown -R samr:samr /app
 USER samr
 EXPOSE 8007
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3   CMD python manage.py health || exit 1
-CMD ["gunicorn", "--bind", "0.0.0.0:8007", "--workers", "3", "config.wsgi:application"]
+CMD ["sh", "-c", "until python manage.py migrate --noinput; do sleep 2; done; exec gunicorn --bind 0.0.0.0:8007 --workers 3 config.wsgi:application"]

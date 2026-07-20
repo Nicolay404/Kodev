@@ -59,4 +59,4 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
 class IsAdminUser(BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.rol in ['admin', 'system_admin'])
+        return bool(request.user and request.user.is_authenticated and request.user.rol == 'system_admin')

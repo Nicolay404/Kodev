@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/riesgo_evaluado.schema.json",
+  "title": "riesgo.evaluado",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "riesgo.evaluado"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "evaluacion_id",
+            "solicitud_id",
+            "nivel_riesgo",
+            "fuentes_rag"
+          ]
+        }
+      }
+    }
+  ]
+}

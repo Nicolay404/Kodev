@@ -12,7 +12,7 @@ app = Celery('solicitud_service')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-app.autodiscover_tasks(['tasks'])
+app.conf.imports = ('tasks.validate_with_consortium',)
 
 
 @app.task(bind=True)
