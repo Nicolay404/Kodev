@@ -34,6 +34,9 @@ class DummyUser:
         return True
 
 class JWTAuthentication(authentication.BaseAuthentication):
+    def authenticate_header(self, request):
+        return 'Bearer'
+
     def authenticate(self, request):
         auth_header = request.headers.get('Authorization')
         
@@ -54,6 +57,9 @@ class JWTAuthentication(authentication.BaseAuthentication):
         return (user, token)
 
 class DeviceTokenAuthentication(authentication.BaseAuthentication):
+    def authenticate_header(self, request):
+        return 'X-Device-Token'
+
     def authenticate(self, request):
         token = request.headers.get('X-Device-Token')
         if not token:

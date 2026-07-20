@@ -5,4 +5,4 @@ class EmergencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Emergency
         fields = '__all__'
-        read_only_fields = ('status', 'reported_at', 'dispatched_at')
+        read_only_fields = ('patient_id', 'status', 'reported_at', 'dispatched_at')

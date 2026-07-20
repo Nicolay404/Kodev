@@ -126,3 +126,21 @@ docker-compose down
 *(Nota: Al usar `down`, no pierdes la información de la base de datos, ya que está guardada de forma persistente en un volumen de Docker `samr_pgdata`).*
 
 ¡Éxito con tu desarrollo!
+
+---
+
+## Backend — URL local de RabbitMQ
+
+El vhost raíz `/` debe declararse codificado como `%2F` para que la misma URL funcione en Celery y Pika:
+
+```env
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+```
+
+## Backend — Ejecutar pruebas
+
+Desde `samr/`, ejecuta pytest dentro del contenedor del servicio que quieras validar:
+
+```bash
+docker compose exec auth-service python -m pytest -q
+```

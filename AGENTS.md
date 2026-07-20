@@ -374,3 +374,29 @@ volumes: [pgdata]
 
 ---
 *Ver también: `data/persistence-db` (esquemas SQL), `logic/core-services` (eventos y comunicación), `sec/security-hardening` (Nginx, JWT, RBAC), `ui/frontend-app`, `ux/design-prototypes`.*
+
+---
+
+# Registro de trabajo de agentes
+
+## 2026-07-19 — Preparación del ambiente local (`logic/core-services`)
+
+- Se verificó que la rama activa es `logic/core-services` y que el árbol de trabajo estaba limpio al iniciar.
+- Se instaló Docker Desktop 4.82.0 (Docker Engine CLI 29.6.1 y Docker Compose v5.3.0).
+- Se habilitaron las características de Windows `Microsoft-Windows-Subsystem-Linux` y `VirtualMachinePlatform`; Windows requiere reinicio antes de iniciar el motor de Docker.
+- Se creó `samr/.env` a partir de los valores de desarrollo ya definidos en `samr/.env.example`; el archivo permanece excluido de Git.
+- Se generó el par de claves RSA de desarrollo en `samr/keys/` mediante el script existente de `auth-service`, y se excluyó ese directorio de Git para impedir que la clave privada se versionara.
+- Se validó la sintaxis de todo el código Python de `samr/` mediante `compileall` (sin errores) y se añadieron exclusiones para artefactos locales `__pycache__/` y `*.py[cod]`.
+- Tras iniciar Docker, se construyeron las 13 imágenes propias y se levantaron los 17 contenedores definidos por Compose.
+- Se crearon de forma idempotente las 11 bases PostgreSQL definidas por el patrón Database-per-Service.
+- Se generó una migración inicial por cada app de dominio (11 en total) exclusivamente desde los modelos existentes, sin agregar ni alterar campos o relaciones de negocio.
+- Se implementó el comando Django `health` que ya era invocado por los Dockerfiles: valida PostgreSQL en los 11 servicios persistentes y RabbitMQ en `notification-service`.
+- Se montó `public.pem` en modo solo lectura para todos los servicios verificadores y el BFF, manteniendo `private.pem` montada exclusivamente en `auth-service`; también se retiró la clave Compose `version` obsoleta.
+- Se corrigió `RABBITMQ_URL` para codificar el vhost raíz como `%2F`, requerido por Pika y compatible con Celery, y se documentó el valor en README/ONBOARDING.
+- Se fijó `eol=lf` para scripts Bash mediante `samr/.gitattributes`, evitando errores de ejecución Linux causados por finales CRLF de Windows.
+- Se añadió configuración `pytest.ini` por servicio (`DJANGO_SETTINGS_MODULE` para Django y `pythonpath` para BFF) y se documentó el comando de pruebas backend.
+- Se normalizó la respuesta de los autenticadores Bearer, M2M y de dispositivo agregando su encabezado `WWW-Authenticate`, para que DRF responda HTTP 401 cuando faltan credenciales.
+- Se marcó `patient_id` como campo de solo lectura en emergencias, ya que el endpoint lo obtiene del usuario autenticado, y se corrigió el mock asíncrono de Channels en la prueba de monitoreo.
+- Se configuró Nginx para propagar el `Host` original; sin esta directiva enviaba nombres internos con guion bajo y Django rechazaba las peticiones del Gateway con HTTP 400 (`DisallowedHost`).
+- Se ejecutaron las 13 suites dentro de Docker: 51 pruebas superadas. También se verificaron los 17 contenedores activos, los 12 servicios de aplicación saludables, las 11 bases PostgreSQL, el BFF (HTTP 200), la redirección HTTP→HTTPS, el Gateway (HTTP 401 esperado sin JWT) y RabbitMQ/exchange `samr.events` (HTTP 200).
+- No se modificaron modelos, flujos de negocio ni contratos de la arquitectura.

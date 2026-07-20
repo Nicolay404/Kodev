@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 from apps.monitoring.models import IoTReading, Alert
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 @pytest.mark.django_db
 class TestMonitoringAPI:
@@ -10,6 +10,7 @@ class TestMonitoringAPI:
     @patch('apps.monitoring.views.publicar_evento')
     @patch('apps.monitoring.views.get_channel_layer')
     def test_post_iot_reading(self, mock_channel_layer, mock_publish, api_client):
+        mock_channel_layer.return_value.group_send = AsyncMock()
         url = reverse('iot_events')
         api_client.credentials(HTTP_X_DEVICE_TOKEN='DEV-12345')
         

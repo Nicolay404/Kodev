@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   samr-net:
     driver: bridge
@@ -10,6 +8,8 @@ volumes:
 x-django-service: &django-service
   networks:
     - samr-net
+  volumes:
+    - ./keys/public.pem:/keys/public.pem:ro
   environment:
     - RABBITMQ_URL=$RABBITMQ_URL
     - DB_PASSWORD=$DB_PASSWORD
@@ -85,6 +85,9 @@ services:
       - nginx
     environment:
       - API_GATEWAY_URL=https://nginx
+      - JWT_PUBLIC_KEY_PATH=/keys/public.pem
+    volumes:
+      - ./keys/public.pem:/keys/public.pem:ro
 
   auth-service:
     <<: *django-service

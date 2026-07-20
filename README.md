@@ -41,3 +41,19 @@ docker compose up -d
 
 **Última actualización:** $(date)
 **Estado:** En construcción (fase: estructura base)
+
+### Backend local — RabbitMQ
+
+Para el vhost raíz de RabbitMQ se usa una ruta AMQP codificada, compatible tanto con Celery como con Pika:
+
+```env
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+```
+
+### Backend local — Pruebas
+
+Cada microservicio incluye su configuración de pytest. Con el entorno levantado, una suite individual se ejecuta así:
+
+```bash
+docker compose exec auth-service python -m pytest -q
+```
