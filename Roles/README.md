@@ -1,4 +1,4 @@
-# SAMR — Sistema de Atención Médica Remota
+# SAMR - Sistema de Atención Médica Remota
 
 > **Arquitectura:** Microservicios orientada a eventos (EDA) · v4.0.0
 > **Base:** ESP-HS-SAMR v1.0.5 (4 módulos) · Diagrama de Clases (Apéndice A) · `requisitosfuncionaes_nofuncionales.xlsx` (20 RF · 38 RNF)
@@ -10,10 +10,10 @@ Este repositorio organiza el trabajo por rama según la responsabilidad de cada 
 
 | Módulo | Caso de uso | RF que agrupa | Servicios que lo implementan |
 |---|---|---|---|
-| **M1 — Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | `patient-service`, `solicitud-service`, `monitoring-service` |
-| **M2 — Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | `evaluacion-service` |
-| **M3 — Módulo de Atención** | CU-003 | RF-13 a RF-15 | `teleconsult-service`, `emergency-service`, `cierre-caso-service` |
-| **M4 — Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | `historial-interop-service`, `audit-service`, `admin-integracion-service` |
+| **M1 - Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | `patient-service`, `solicitud-service`, `monitoring-service` |
+| **M2 - Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | `evaluacion-service` |
+| **M3 - Módulo de Atención** | CU-003 | RF-13 a RF-15 | `teleconsult-service`, `emergency-service`, `cierre-caso-service` |
+| **M4 - Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | `historial-interop-service`, `audit-service`, `admin-integracion-service` |
 
 Servicios transversales (no ligados a un solo módulo): `auth-service`, `notification-service`, `bff-service`.
 
@@ -57,4 +57,4 @@ El BFF vive **entre el Frontend y el API Gateway** (no detrás de él): agrega r
 | 13 | `bff-service` | 8000 | Transversal (edge, delante del Gateway) | Ninguna |
 
 ---
-*Índice generado a partir de `ARQUITECTURA_MAESTRA_SAMR_v4.md` — para el detalle completo de cada capa, entra a la rama correspondiente de la tabla de arriba.*
+*Índice generado a partir de `ARQUITECTURA_MAESTRA_SAMR_v4.md` - para el detalle completo de cada capa, entra a la rama correspondiente de la tabla de arriba.*

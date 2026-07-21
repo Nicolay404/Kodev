@@ -1,7 +1,7 @@
-# SAMR — Documento de Arquitectura Maestro y Definitivo
+# SAMR - Documento de Arquitectura Maestro y Definitivo
 ## Sistema de Atención Médica Remota · Arquitectura de Microservicios Orientada a Eventos (EDA)
 
-> **Versión:** 4.0.0 — Realineada contra la Especificación de Historias de Usuario (ESP-HS-SAMR v1.0.5), el Diagrama de Clases (Apéndice A) y el archivo `requisitosfuncionaes_nofuncionales.xlsx` (20 RF · 38 RNF · 4 módulos).
+> **Versión:** 4.0.0 - Realineada contra la Especificación de Historias de Usuario (ESP-HS-SAMR v1.0.5), el Diagrama de Clases (Apéndice A) y el archivo `requisitosfuncionaes_nofuncionales.xlsx` (20 RF · 38 RNF · 4 módulos).
 > **Base de auditoría:** v3.0.0 de este mismo documento + los 3 artefactos anteriores.
 > **Stack final (sin cambios de tecnología, solo de organización):** Django 5.0 · DRF 3.15 · Django Channels 4.1 · Celery 5.4 · **RabbitMQ 3.13** · Redis 7.2 · PostgreSQL 16 · React 18.3 · TypeScript 5.5 · Docker Compose.
 > **Principio rector añadido en esta versión:** *Un microservicio pertenece a un solo módulo de negocio (M1–M4). Ningún servicio mezcla responsabilidades de dos módulos distintos.*
@@ -16,10 +16,10 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 
 | Módulo | Caso de uso | RF que agrupa | Actores (según Apéndice A / clases del dominio) |
 |---|---|---|---|
-| **M1 — Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
-| **M2 — Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
-| **M3 — Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
-| **M4 — Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
+| **M1 - Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
+| **M2 - Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
+| **M3 - Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
+| **M4 - Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
 
 ## 1.2 Problemas detectados en v3.0.0 (por qué se reorganiza)
 
@@ -27,10 +27,10 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 |---|---|---|
 | `vity-ai-service` | M1 (RF-02, RF-07) **y** M2 (RF-08, RF-09) | El chatbot/FAQ es M1 (Solicitud); la evaluación de riesgo con IA y las recomendaciones RAG son M2 (Evaluación), no la misma responsabilidad de negocio. |
 | `emergency-service` | M1 (publicaba `solicitud.validada`) **+** M2 (matching RF-11, asignación RF-12) **+** M3 (emergencias RF-14) | La validación de la solicitud es responsabilidad de M1; el matching/asignación es M2; solo la gestión de emergencias (RF-14) es M3. Un mismo servicio no puede ser dueño de tres módulos. |
-| `center-service` | M2 (búsqueda de centros, RF-10 — lectura) **y** M4 (registro/validación M2M de centros, RF-19 — escritura administrativa) | Consultar centros disponibles para un matching (M2) es una operación de lectura muy distinta, en dueño y en ciclo de vida, a dar de alta y validar un centro nuevo en el consorcio (M4, "Administración del Sistema"). |
+| `center-service` | M2 (búsqueda de centros, RF-10 - lectura) **y** M4 (registro/validación M2M de centros, RF-19 - escritura administrativa) | Consultar centros disponibles para un matching (M2) es una operación de lectura muy distinta, en dueño y en ciclo de vida, a dar de alta y validar un centro nuevo en el consorcio (M4, "Administración del Sistema"). |
 | `monitoring-service` | M1 (ingesta IoT + anomalías, RF-05/RF-06) **y** M4 (registro de dispositivos por el Administrador, RF-19) | Ingerir datos biomédicos y detectar anomalías es parte del flujo de Solicitud (de hecho, dispara una nueva `SolicitudMedica`, ver CU-001 flujo alternativo); vincular un dispositivo a un paciente es una función administrativa de M4. |
-| `followup-service` | M3 (cierre del caso, RF-15) **y** M4 (historial clínico consolidado, RF-16) | Actualizar el historial *durante* la atención y cerrar el caso es M3 (`CentroMedico.confirmarCierreCaso()` en el Diagrama de Clases); el expediente **consolidado e inter-institucional** (RF-16) es M4, junto con la interoperabilidad FHIR (RF-17) — de hecho ya vivían separados en `interop-service`. |
-| `bff-service` | — (no mezclaba módulos, pero estaba mal ubicado en la topología) | Estaba descrito como un microservicio más *detrás* del API Gateway (Nginx), al mismo nivel que los servicios de negocio. Un BFF por definición se sitúa **entre el cliente y el Gateway**, no junto a los servicios que agrega. |
+| `followup-service` | M3 (cierre del caso, RF-15) **y** M4 (historial clínico consolidado, RF-16) | Actualizar el historial *durante* la atención y cerrar el caso es M3 (`CentroMedico.confirmarCierreCaso()` en el Diagrama de Clases); el expediente **consolidado e inter-institucional** (RF-16) es M4, junto con la interoperabilidad FHIR (RF-17) - de hecho ya vivían separados en `interop-service`. |
+| `bff-service` | - (no mezclaba módulos, pero estaba mal ubicado en la topología) | Estaba descrito como un microservicio más *detrás* del API Gateway (Nginx), al mismo nivel que los servicios de negocio. Un BFF por definición se sitúa **entre el cliente y el Gateway**, no junto a los servicios que agrega. |
 
 ## 1.3 Qué cambia y qué NO cambia
 
@@ -55,7 +55,7 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 |---|---|---|
 | **Database-per-Service** | Cada servicio posee su propio schema/base de datos; ningún JOIN entre schemas | 11 servicios con base de datos propia + 2 servicios sin schema PostgreSQL propio (`notification-service` usa solo Redis, `bff-service` no persiste nada) |
 | **API Gateway** | Punto único de entrada para todo el tráfico que llega a los microservicios | Nginx: routing por prefijo, rate limiting, WAF, TLS, verificación JWT previa |
-| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway (Nginx) para llegar a cada microservicio — nunca al revés |
+| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway (Nginx) para llegar a cada microservicio - nunca al revés |
 | **Event-Driven / Coreografía** | Los servicios reaccionan a eventos publicados por otros, sin orquestador central | RabbitMQ (exchange topic `samr.events`); ningún servicio le "ordena" a otro qué hacer |
 | **Saga Coreografiada** | Transacción distribuida sin coordinador central, con compensación hacia adelante | `solicitud.creada (M1) → riesgo.evaluado (M2) → recursos.asignados (M2) → atencion.iniciada (M3) → caso.cerrado (M3) → historial.consolidado (M4)` |
 | **Un servicio, un módulo** *(nuevo en v4.0)* | Ningún microservicio implementa RF de dos módulos distintos | Ver tabla de la sección 1.2 y el desglose completo en la sección 4 |
@@ -64,9 +64,9 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 
 ## 2.2 Stack Tecnológico Global
 
-*(Sin cambios respecto a v3.0.0 — se mantiene íntegro por ya estar correctamente auditado contra los RNF)*
+*(Sin cambios respecto a v3.0.0 - se mantiene íntegro por ya estar correctamente auditado contra los RNF)*
 
-### Backend — común a los 12 microservicios de negocio
+### Backend - común a los 12 microservicios de negocio
 
 | Tecnología | Versión | Uso |
 |---|---|---|
@@ -74,9 +74,9 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 | Django REST Framework | 3.15.2 | Serializers, ViewSets, permisos |
 | djangorestframework-simplejwt | 5.3.1 | Validación JWT **RS256** |
 | Daphne | 4.1.2 | Servidor ASGI (HTTP + WebSocket en un mismo proceso) |
-| Django Channels | 4.1.0 | WebSocket — solo `monitoring-service` y `teleconsult-service` |
+| Django Channels | 4.1.0 | WebSocket - solo `monitoring-service` y `teleconsult-service` |
 | channels-redis | 4.2.0 | Channel Layer sobre Redis |
-| Celery | 5.4.0 | Workers asíncronos — broker: **RabbitMQ** |
+| Celery | 5.4.0 | Workers asíncronos - broker: **RabbitMQ** |
 | pika | 1.3.2 | Cliente RabbitMQ (publisher/consumer de eventos de dominio) |
 | httpx | 0.27.0 | Cliente HTTP async (llamadas M2M, LLM, FHIR) |
 | cryptography | 43.0.0 | Cifrado Fernet (AES-128) para campos PII: cédula |
@@ -85,9 +85,9 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 | psycopg2-binary | 2.9.9 | Driver PostgreSQL |
 | gunicorn | 22.0.0 | Lanza Daphne en producción |
 | fhir.resources | 7.1.0 | Serialización HL7 FHIR R4 (solo `historial-interop-service`) |
-| firebase-admin | 6.5.0 | Únicamente FCM (push) — solo `notification-service` |
+| firebase-admin | 6.5.0 | Únicamente FCM (push) - solo `notification-service` |
 
-### Frontend — un solo cliente React para todo el sistema
+### Frontend - un solo cliente React para todo el sistema
 
 | Tecnología | Versión | Uso |
 |---|---|---|
@@ -107,7 +107,7 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 | Framer Motion | 11.3.8 | Animaciones (estados de urgencia, bot) |
 | i18next | 23.12.2 | Internacionalización ES/EN |
 
-### Base de Datos e Infraestructura — el mínimo necesario
+### Base de Datos e Infraestructura - el mínimo necesario
 
 | Tecnología | Versión | Uso | RF/RNF que lo exige |
 |---|---|---|---|
@@ -125,10 +125,10 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
 ╔══════════════════════════════════════════════════════════════════════╗
 ║        PACIENTES · PROFESIONALES · ADMINISTRADORES (Frontend React)   ║
 ╚═════════════════════════════════╦════════════════════════════════════╝
-                                   │ HTTPS — el Frontend SOLO conoce la URL del BFF
+                                   │ HTTPS - el Frontend SOLO conoce la URL del BFF
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  BFF-SERVICE — Backend For Frontend                                   ║
+║  BFF-SERVICE - Backend For Frontend                                   ║
 ║  Agrega patient + evaluacion + monitoring + atencion para el          ║
 ║  dashboard en una sola respuesta. Sin base de datos propia.           ║
 ║  Es cliente del API Gateway, nunca al revés.                          ║
@@ -136,7 +136,7 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
                                    │ HTTPS :443 (TLS 1.3) interno
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  NGINX — API GATEWAY                                                  ║
+║  NGINX - API GATEWAY                                                  ║
 ║  Rate limiting por zona · WAF regex · Headers de seguridad            ║
 ║  Verificación JWT (clave pública RS256) antes de rutear                ║
 ║  También expuesto directo a: apps móviles, dispositivos IoT           ║
@@ -183,22 +183,22 @@ La versión 3.0.0 ya estaba bien auditada a nivel de **stack tecnológico** (Rab
    └───────────────────┘└────────────┘└──────────────────────┘
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  RABBITMQ 3.13 — Event Bus (exchange topic `samr.events`)             ║
+║  RABBITMQ 3.13 - Event Bus (exchange topic `samr.events`)             ║
 ║  + broker de Celery (una sola tecnología de mensajería)                ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  REDIS 7.2 — Cache de lecturas + Channel Layer WebSocket (solamente)  ║
+║  REDIS 7.2 - Cache de lecturas + Channel Layer WebSocket (solamente)  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
-**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" — no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Si se coloca detrás de Nginx (como en v3.0.0), el Frontend necesita conocer que existe un `bff-service` entre varios, y Nginx tendría que exponer una ruta especial solo para él sin razón. Colocándolo **delante**, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.* Esto también evita que el BFF necesite pasar por el WAF/rate-limiting de Nginx para sus propias llamadas agregadas (son llamadas internas ya autenticadas con el JWT que el BFF propaga), mientras que todo el tráfico que sí debe pasar por Nginx (apps móviles, dispositivos IoT, el propio BFF) lo sigue haciendo de forma uniforme.
+**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" - no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Si se coloca detrás de Nginx (como en v3.0.0), el Frontend necesita conocer que existe un `bff-service` entre varios, y Nginx tendría que exponer una ruta especial solo para él sin razón. Colocándolo **delante**, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.* Esto también evita que el BFF necesite pasar por el WAF/rate-limiting de Nginx para sus propias llamadas agregadas (son llamadas internas ya autenticadas con el JWT que el BFF propaga), mientras que todo el tráfico que sí debe pasar por Nginx (apps móviles, dispositivos IoT, el propio BFF) lo sigue haciendo de forma uniforme.
 
 ---
 
-# 3. ESTRATEGIA DE COMUNICACIÓN — DETALLE TÉCNICO
+# 3. ESTRATEGIA DE COMUNICACIÓN - DETALLE TÉCNICO
 
-## 3.1 Canal Síncrono — BFF y Clientes → Nginx → Microservicio
+## 3.1 Canal Síncrono - BFF y Clientes → Nginx → Microservicio
 
 ```nginx
 # nginx/samr.conf
@@ -222,29 +222,29 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
 
-    # WAF básico — bloquea patrones de inyección antes de llegar a Django
+    # WAF básico - bloquea patrones de inyección antes de llegar a Django
     if ($request_uri ~* "(union|select|insert|drop|delete|--|;|<script)") { return 403; }
 
     limit_req_zone $binary_remote_addr zone=auth_zone:10m rate=5r/m;
     limit_req_zone $binary_remote_addr zone=api_zone:10m rate=30r/m;
     limit_req_zone $binary_remote_addr zone=iot_zone:10m rate=100r/m;
 
-    # M1 — Solicitud
+    # M1 - Solicitud
     location /api/auth/          { limit_req zone=auth_zone burst=3; proxy_pass http://auth_service; }
     location /api/patients/      { limit_req zone=api_zone;  proxy_pass http://patient_service; }
     location /api/solicitud/     { limit_req zone=api_zone;  proxy_pass http://solicitud_service; }
     location /api/monitoring/iot-events { limit_req zone=iot_zone; proxy_pass http://monitoring_service; }
     location /api/monitoring/    { limit_req zone=api_zone;  proxy_pass http://monitoring_service; }
 
-    # M2 — Evaluación y Asignación
+    # M2 - Evaluación y Asignación
     location /api/evaluacion/    { limit_req zone=api_zone;  proxy_pass http://evaluacion_service; }
 
-    # M3 — Atención
+    # M3 - Atención
     location /api/teleconsult/   { limit_req zone=api_zone;  proxy_pass http://teleconsult_service; }
     location /api/emergencies/   { limit_req zone=api_zone;  proxy_pass http://emergency_service; }
     location /api/cierre-caso/   { limit_req zone=api_zone;  proxy_pass http://cierre_caso_service; }
 
-    # M4 — Integración e Interoperabilidad Clínica
+    # M4 - Integración e Interoperabilidad Clínica
     location /api/historial/     { limit_req zone=api_zone;  proxy_pass http://historial_interop_service; }
     location /api/history/fhir/  { limit_req zone=api_zone;  proxy_pass http://historial_interop_service; }
     location /api/audit/         { limit_req zone=api_zone;  proxy_pass http://audit_service; }
@@ -256,19 +256,19 @@ server {
 ```
 
 ```nginx
-# nginx/bff.conf — el BFF vive delante de Nginx; este bloque es el propio
+# nginx/bff.conf - el BFF vive delante de Nginx; este bloque es el propio
 # API Gateway aceptando al BFF como cualquier otro cliente autenticado.
 # location /api/bff/ NO existe en v4.0: el BFF ya no es una ruta más
 # detrás del Gateway, es quien inicia las llamadas hacia las rutas de
 # arriba (/api/patients/, /api/evaluacion/, /api/monitoring/, etc.)
 ```
 
-## 3.2 Canal Asíncrono — RabbitMQ (Event Bus de Dominio)
+## 3.2 Canal Asíncrono - RabbitMQ (Event Bus de Dominio)
 
-*(El mecanismo de publicación/consumo — exchange topic, DLX, reintentos — no cambia respecto a v3.0.0; solo se actualiza qué servicio publica/consume cada evento, según la nueva identificación de microservicios.)*
+*(El mecanismo de publicación/consumo - exchange topic, DLX, reintentos - no cambia respecto a v3.0.0; solo se actualiza qué servicio publica/consume cada evento, según la nueva identificación de microservicios.)*
 
 ```python
-# shared/events/publisher.py — idéntico en todos los servicios
+# shared/events/publisher.py - idéntico en todos los servicios
 import pika, json, uuid
 from datetime import datetime, timezone
 from django.conf import settings
@@ -299,7 +299,7 @@ publicar_evento("solicitud.creada", {"solicitud_id": str(id), "patient_id": str(
 ```
 
 ```python
-# shared/events/consumer.py — patrón idéntico en todos los servicios
+# shared/events/consumer.py - patrón idéntico en todos los servicios
 import pika, json
 from django.conf import settings
 
@@ -355,12 +355,12 @@ def iniciar_consumidor(queue_name: str, routing_keys: list[str], callback):
 | `ai.decision_logged` | `solicitud-service`, `evaluacion-service` | `audit-service` | M1/M2 → M4 | RF-18, RNF-35 |
 | `auth.login_success` / `auth.account_locked` | `auth-service` | `audit-service` | Transversal | RNF-01 |
 
-## 3.3 Canal Tiempo Real — WebSocket (Django Channels + Redis)
+## 3.3 Canal Tiempo Real - WebSocket (Django Channels + Redis)
 
-*(Sin cambios de tecnología respecto a v3.0.0 — solo se confirma que ambos servicios con WebSocket quedan cada uno en un solo módulo: `monitoring-service` es M1, `teleconsult-service` es M3.)*
+*(Sin cambios de tecnología respecto a v3.0.0 - solo se confirma que ambos servicios con WebSocket quedan cada uno en un solo módulo: `monitoring-service` es M1, `teleconsult-service` es M3.)*
 
 ```python
-# config/asgi.py — monitoring-service (M1) y teleconsult-service (M3)
+# config/asgi.py - monitoring-service (M1) y teleconsult-service (M3)
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": JWTAuthMiddlewareRS256(
@@ -397,7 +397,7 @@ class TeleconsultSignalingConsumer(AsyncWebsocketConsumer):
 ```
 Configuración del cliente (frontend): `RTCPeerConnection` con `iceServers: [{urls: "stun:stun.l.google.com:19302"}, {urls: "turn:turn.samr.local:3478", username, credential}]`. El TURN (`coturn`) solo se usa cuando la conexión directa P2P falla (redes con NAT simétrico o firewalls corporativos).
 
-## 3.4 Canal Interno M2M — Llamadas HTTP entre Servicios (incluye el BFF)
+## 3.4 Canal Interno M2M - Llamadas HTTP entre Servicios (incluye el BFF)
 
 ```python
 # Servicio receptor
@@ -405,7 +405,7 @@ class IsInternalService(BasePermission):
     def has_permission(self, request, view):
         return request.headers.get("X-Service-Token") == settings.INTERNAL_SERVICE_TOKEN
 
-# BFF llamando al API Gateway (nunca a un microservicio directo — respeta la topología de 2.3)
+# BFF llamando al API Gateway (nunca a un microservicio directo - respeta la topología de 2.3)
 headers = {"Authorization": f"Bearer {jwt_del_usuario}"}
 async with httpx.AsyncClient(base_url="https://nginx-gateway") as client:
     patient, evaluacion, monitoring, atencion = await asyncio.gather(
@@ -419,7 +419,7 @@ async with httpx.AsyncClient(base_url="https://nginx-gateway") as client:
 headers = {"X-Service-Token": settings.INTERNAL_SERVICE_TOKEN}
 response = httpx.get("http://admin-integracion-service:8011/api/admin/centers/available/", headers=headers, timeout=5.0)
 ```
-El token interno es distinto del JWT de usuario — identifica al *servicio* llamador, no a una persona. Rotación recomendada: cada 90 días, vía variable de entorno (sin cambios de código). El BFF es la única pieza que usa el JWT del usuario (propagándolo) en vez del `X-Service-Token`, porque actúa en nombre del usuario, no como un servicio interno más.
+El token interno es distinto del JWT de usuario - identifica al *servicio* llamador, no a una persona. Rotación recomendada: cada 90 días, vía variable de entorno (sin cambios de código). El BFF es la única pieza que usa el JWT del usuario (propagándolo) en vez del `X-Service-Token`, porque actúa en nombre del usuario, no como un servicio interno más.
 
 ---
 
@@ -427,9 +427,9 @@ El token interno es distinto del JWT de usuario — identifica al *servicio* lla
 
 ## 4.0 Servicios Transversales (no pertenecen a un solo módulo)
 
-### 4.0.1 `auth-service` :8001 — Autenticación e Identidad
+### 4.0.1 `auth-service` :8001 - Autenticación e Identidad
 
-**Responsabilidad única:** ciclo de vida de la identidad — registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA. Aunque RF-01 está catalogado bajo M1 en la matriz de requisitos, la identidad se consulta (verificación de JWT) desde los 12 microservicios de negocio y el BFF, por lo que se documenta aparte como transversal.
+**Responsabilidad única:** ciclo de vida de la identidad - registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA. Aunque RF-01 está catalogado bajo M1 en la matriz de requisitos, la identidad se consulta (verificación de JWT) desde los 12 microservicios de negocio y el BFF, por lo que se documenta aparte como transversal.
 
 **Base de datos:** PostgreSQL, schema `auth_db`.
 ```sql
@@ -454,16 +454,16 @@ CREATE TABLE auth_user (
 **Eventos que publica:** `auth.login_success`, `auth.account_locked`
 **Eventos que consume:** ninguno (es la fuente de identidad, no reacciona a otros dominios)
 
-### 4.0.2 `notification-service` :8012 — Notificaciones Multi-Canal
+### 4.0.2 `notification-service` :8012 - Notificaciones Multi-Canal
 
-**Responsabilidad única:** despacho de notificaciones push (FCM). Servicio puramente reactivo — no expone endpoints de negocio, solo un health check. Es transversal porque recibe eventos de los 4 módulos por igual.
+**Responsabilidad única:** despacho de notificaciones push (FCM). Servicio puramente reactivo - no expone endpoints de negocio, solo un health check. Es transversal porque recibe eventos de los 4 módulos por igual.
 
-**Base de datos:** Redis únicamente — preferencias de canal + cola de reintentos con backoff exponencial (TTL 24h).
+**Base de datos:** Redis únicamente - preferencias de canal + cola de reintentos con backoff exponencial (TTL 24h).
 
 **Eventos que consume:** `vity.escalation_requested` (M2), `emergency.created`, `emergency.dispatched` (M3), `recursos.asignados` (M2), `center.validated`, `center.rejected` (M4)
 **Eventos que publica:** ninguno
 
-### 4.0.3 `bff-service` — Backend For Frontend (reposicionado, sin puerto interno de negocio)
+### 4.0.3 `bff-service` - Backend For Frontend (reposicionado, sin puerto interno de negocio)
 
 **Responsabilidad única:** agregar `patient + evaluacion + monitoring + cierre-caso` en una sola respuesta para el dashboard del Frontend. **Ya no vive detrás del API Gateway como los demás**: se ubica entre el Frontend y Nginx (ver topología 2.3), y es él quien llama al Gateway, nunca al revés.
 
@@ -473,11 +473,11 @@ CREATE TABLE auth_user (
 |---|---|---|
 | `/dashboard/` | GET | JWT (propaga a servicios internos a través del Gateway) |
 
-**Eventos:** ninguno — solo llamadas HTTP en paralelo hacia el API Gateway (`httpx.AsyncClient` + `asyncio.gather`).
+**Eventos:** ninguno - solo llamadas HTTP en paralelo hacia el API Gateway (`httpx.AsyncClient` + `asyncio.gather`).
 
-## 4.1 M1 — Módulo de Solicitud (CU-001 · RF-01 a RF-07)
+## 4.1 M1 - Módulo de Solicitud (CU-001 · RF-01 a RF-07)
 
-### 4.1.1 `patient-service` :8002 — Perfil Clínico del Paciente
+### 4.1.1 `patient-service` :8002 - Perfil Clínico del Paciente
 
 **Responsabilidad única:** datos demográficos, alergias, condiciones crónicas, geolocalización, consentimientos LOPDP. Fuente de verdad del perfil (soporta RF-01 junto con `auth-service`).
 
@@ -506,9 +506,9 @@ CREATE TABLE patients (
 **Eventos que publica:** `patient.profile_updated`
 **Eventos que consume:** ninguno
 
-### 4.1.2 `solicitud-service` :8003 — Bot Conversacional, Registro y Validación de Solicitud
+### 4.1.2 `solicitud-service` :8003 - Bot Conversacional, Registro y Validación de Solicitud
 
-**Responsabilidad única:** conversación con el paciente (RF-02, RF-07 — antes en `vity-ai-service`), registro de la solicitud médica (RF-03) y su **validación M2M con el Consorcio** (RF-04 — antes vivía, fuera de lugar, en `emergency-service`).
+**Responsabilidad única:** conversación con el paciente (RF-02, RF-07 - antes en `vity-ai-service`), registro de la solicitud médica (RF-03) y su **validación M2M con el Consorcio** (RF-04 - antes vivía, fuera de lugar, en `emergency-service`).
 
 **Base de datos:** PostgreSQL, schema `solicitud_db`.
 ```sql
@@ -536,7 +536,7 @@ CREATE TABLE faq_entries (
     updated_at  TIMESTAMPTZ DEFAULT now()
 );
 ```
-Redis: `vity_cache:{hash_del_mensaje}` (TTL 60s) — cache de respuestas frecuentes de FAQ (RNF-12).
+Redis: `vity_cache:{hash_del_mensaje}` (TTL 60s) - cache de respuestas frecuentes de FAQ (RNF-12).
 
 **Flujo de validación M2M con el Consorcio (RF-04):**
 ```
@@ -552,12 +552,12 @@ Redis: `vity_cache:{hash_del_mensaje}` (TTL 60s) — cache de respuestas frecuen
 | `/api/solicitud/chat/` | POST | JWT (paciente) | RF-02, RF-07 |
 | `/api/solicitud/faq/` | GET/POST/PATCH | Admin JWT (POST/PATCH) | RF-07, RNF-12 |
 | `/api/solicitud/` | POST | JWT (paciente) | RF-03 |
-| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP — derecho al olvido |
+| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP - derecho al olvido |
 
 **Eventos que publica:** `solicitud.creada`, `solicitud.validada`, `ai.decision_logged`
 **Eventos que consume:** `vitals.critical_detected` (crea una solicitud automática cuando el módulo de monitoreo detecta una anomalía)
 
-### 4.1.3 `monitoring-service` :8004 — IoT, Signos Vitales y Detección de Anomalías
+### 4.1.3 `monitoring-service` :8004 - IoT, Signos Vitales y Detección de Anomalías
 
 **Responsabilidad única:** ingesta de datos IoT (RF-05), detección de anomalías (RF-06) y transmisión en tiempo real vía WebSocket. **Ya no incluye el registro administrativo de dispositivos** (eso se movió a `admin-integracion-service`, M4, porque es una función de "Administración del Sistema", RF-19, no de recepción de datos clínicos).
 
@@ -584,11 +584,11 @@ CREATE TABLE monitoring_alerts (
 **Eventos que publica:** `vitals.critical_detected`
 **Eventos que consume:** `device.registered` (habilita la ingesta de lecturas de ese `device_id`; sin este evento previo, `/api/monitoring/iot-events/` rechaza el dato)
 
-## 4.2 M2 — Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
+## 4.2 M2 - Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
 
-### 4.2.1 `evaluacion-service` :8005 — Evaluación de Riesgo, Matching y Asignación de Recursos
+### 4.2.1 `evaluacion-service` :8005 - Evaluación de Riesgo, Matching y Asignación de Recursos
 
-**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio, porque son pasos secuenciales del mismo flujo de negocio y del mismo actor principal (LLM + Profesional/Evaluador clínico): evaluación de riesgo con IA (RF-08), recomendaciones con contexto RAG (RF-09), búsqueda de centros disponibles — **solo lectura** del catálogo que administra M4 (RF-10), matching paciente-profesional (RF-11) y asignación de recursos + notificación (RF-12). **Antes, RF-11/RF-12 vivían mal ubicados en `emergency-service`.**
+**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio, porque son pasos secuenciales del mismo flujo de negocio y del mismo actor principal (LLM + Profesional/Evaluador clínico): evaluación de riesgo con IA (RF-08), recomendaciones con contexto RAG (RF-09), búsqueda de centros disponibles - **solo lectura** del catálogo que administra M4 (RF-10), matching paciente-profesional (RF-11) y asignación de recursos + notificación (RF-12). **Antes, RF-11/RF-12 vivían mal ubicados en `emergency-service`.**
 
 **Base de datos:** PostgreSQL, schema `evaluacion_db` + réplica de lectura del catálogo de centros (actualizada por evento, ver 3.2).
 ```sql
@@ -619,14 +619,14 @@ CREATE TABLE centros_disponibles_cache (
 | `/api/evaluacion/centros-disponibles/` | GET | X-Service-Token | RF-10 |
 | `/api/evaluacion/matching/{evaluacion_id}/` | POST | Medical/Admin JWT | RF-11, RF-12 |
 
-**Eventos que consume:** `solicitud.validada` (M1), `center.validated` / `center.rejected` (M4 — actualiza `centros_disponibles_cache`), `matching.fallido` (reintento con siguiente candidato)
+**Eventos que consume:** `solicitud.validada` (M1), `center.validated` / `center.rejected` (M4 - actualiza `centros_disponibles_cache`), `matching.fallido` (reintento con siguiente candidato)
 **Eventos que publica:** `riesgo.evaluado`, `vity.escalation_requested`, `recursos.asignados`, `matching.fallido`, `ai.decision_logged`
 
-## 4.3 M3 — Módulo de Atención (CU-003 · RF-13 a RF-15)
+## 4.3 M3 - Módulo de Atención (CU-003 · RF-13 a RF-15)
 
-### 4.3.1 `teleconsult-service` :8006 — Teleconsulta con Señalización WebRTC
+### 4.3.1 `teleconsult-service` :8006 - Teleconsulta con Señalización WebRTC
 
-**Responsabilidad única:** sesión de teleconsulta (RF-13) — creación de sala, señalización WebRTC para video/audio, chat de texto, notas médicas y diagnóstico. Sin cambios respecto a v3.0.0 (ya estaba correctamente acotado a un solo módulo).
+**Responsabilidad única:** sesión de teleconsulta (RF-13) - creación de sala, señalización WebRTC para video/audio, chat de texto, notas médicas y diagnóstico. Sin cambios respecto a v3.0.0 (ya estaba correctamente acotado a un solo módulo).
 
 **Base de datos:** PostgreSQL, schema `teleconsult_db` + Redis (`room:{room_token}`, TTL 3600s: estado de sala).
 ```sql
@@ -647,9 +647,9 @@ CREATE TABLE teleconsults (
 **Eventos que consume:** `recursos.asignados`
 **Eventos que publica:** `teleconsult.session_started`, `teleconsult.closed`
 
-### 4.3.2 `emergency-service` :8007 — Gestión de Emergencias Médicas
+### 4.3.2 `emergency-service` :8007 - Gestión de Emergencias Médicas
 
-**Responsabilidad única:** **exclusivamente** RF-14 — activar el protocolo de emergencias, generar/entregar la guía de primeros auxilios, coordinar el despacho de ambulancia. **Ya no hace matching ni asignación de recursos** (eso quedó en `evaluacion-service`, M2) **ni valida solicitudes** (eso quedó en `solicitud-service`, M1).
+**Responsabilidad única:** **exclusivamente** RF-14 - activar el protocolo de emergencias, generar/entregar la guía de primeros auxilios, coordinar el despacho de ambulancia. **Ya no hace matching ni asignación de recursos** (eso quedó en `evaluacion-service`, M2) **ni valida solicitudes** (eso quedó en `solicitud-service`, M1).
 
 **Base de datos:** PostgreSQL, schema `emergency_db`.
 ```sql
@@ -676,7 +676,7 @@ CREATE TABLE guias_primeros_auxilios (
 **Eventos que consume:** `vity.escalation_requested` (M2), `vitals.critical_detected` (M1)
 **Eventos que publica:** `emergency.created`, `emergency.dispatched`, `ai.decision_logged`
 
-### 4.3.3 `cierre-caso-service` :8008 — Actualización de Historial y Cierre del Caso
+### 4.3.3 `cierre-caso-service` :8008 - Actualización de Historial y Cierre del Caso
 
 **Responsabilidad única:** actualización del historial clínico *durante* la atención y cierre operativo del caso (RF-15), verificación de integridad del expediente antes de cerrar (RNF-28). Se renombra desde `followup-service`: "seguimiento" ya no es un concepto vigente en la especificación de casos de uso (el CU-003 corregido no contempla una épica de "seguimiento y continuidad" separada), por lo que el nombre del servicio se alinea al RF-15 real: **cierre del caso**.
 
@@ -696,13 +696,13 @@ CREATE TABLE clinical_cases (
 | `/api/cierre-caso/{id}/verify/` | GET | Medical/Admin JWT | RNF-28 |
 
 **Eventos que consume:** `teleconsult.closed`, `emergency.dispatched`
-**Eventos que publica:** `caso.cerrado` (consumido por `historial-interop-service` en M4 para consolidar el expediente — este es el punto exacto donde M3 entrega la información a M4)
+**Eventos que publica:** `caso.cerrado` (consumido por `historial-interop-service` en M4 para consolidar el expediente - este es el punto exacto donde M3 entrega la información a M4)
 
-## 4.4 M4 — Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
+## 4.4 M4 - Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
 
-### 4.4.1 `historial-interop-service` :8009 — Historial Clínico Consolidado e Interoperabilidad FHIR
+### 4.4.1 `historial-interop-service` :8009 - Historial Clínico Consolidado e Interoperabilidad FHIR
 
-**Responsabilidad única:** mantener el expediente clínico **consolidado** por paciente (RF-16 — agregando eventos de M1/M2/M3) y exponerlo en formato FHIR R4 a MSP/IESS/Consorcio (RF-17). Se fusionan aquí dos responsabilidades que en v3.0.0 estaban separadas sin necesidad (`followup-service` guardaba el historial "local" y `interop-service` solo componía sin guardar nada): ambas son, en realidad, la misma responsabilidad de M4 vista desde dos ángulos (guardar el consolidado / exponerlo estandarizado).
+**Responsabilidad única:** mantener el expediente clínico **consolidado** por paciente (RF-16 - agregando eventos de M1/M2/M3) y exponerlo en formato FHIR R4 a MSP/IESS/Consorcio (RF-17). Se fusionan aquí dos responsabilidades que en v3.0.0 estaban separadas sin necesidad (`followup-service` guardaba el historial "local" y `interop-service` solo componía sin guardar nada): ambas son, en realidad, la misma responsabilidad de M4 vista desde dos ángulos (guardar el consolidado / exponerlo estandarizado).
 
 **Base de datos:** PostgreSQL, schema `historial_db`.
 ```sql
@@ -721,12 +721,12 @@ Redis: cache de la composición FHIR (TTL 300s).
 | `/api/historial/{patient_id}/` | GET | Medical/Patient JWT | RF-16 |
 | `/api/history/fhir/{patient_id}/` | GET | Medical/Patient JWT + consentimiento verificado | RF-17, RNF-32, RNF-34 |
 
-**Eventos que consume:** `caso.cerrado` (M3 — consolida el evento y, si aplica, invalida el cache FHIR)
+**Eventos que consume:** `caso.cerrado` (M3 - consolida el evento y, si aplica, invalida el cache FHIR)
 **Eventos que publica:** ninguno
 
-### 4.4.2 `audit-service` :8010 — Auditoría Inmutable y Auditoría DPD
+### 4.4.2 `audit-service` :8010 - Auditoría Inmutable y Auditoría DPD
 
-**Responsabilidad única:** registro append-only de eventos de seguridad y decisiones de IA (RF-18), y la interfaz de Auditoría DPD (RF-20). Sin cambios respecto a v3.0.0 — ya estaba correctamente acotado a M4.
+**Responsabilidad única:** registro append-only de eventos de seguridad y decisiones de IA (RF-18), y la interfaz de Auditoría DPD (RF-20). Sin cambios respecto a v3.0.0 - ya estaba correctamente acotado a M4.
 
 **Base de datos:** PostgreSQL, schema `audit_db`.
 ```sql
@@ -764,10 +764,10 @@ CREATE TABLE audit_reviews (
 
 La operación `revisarAuditoria()` del Apéndice A (clase `DelegadoDPD`) se implementa como el `PATCH` de arriba: crea o actualiza la fila correspondiente en `audit_reviews`, nunca en `audit_log`.
 
-**Eventos que consume:** *todos* los eventos del bus (`#` wildcard) — registra cada evento de dominio
+**Eventos que consume:** *todos* los eventos del bus (`#` wildcard) - registra cada evento de dominio
 **Eventos que publica:** ninguno
 
-### 4.4.3 `admin-integracion-service` :8011 — Administración del Sistema (Centros y Dispositivos)
+### 4.4.3 `admin-integracion-service` :8011 - Administración del Sistema (Centros y Dispositivos)
 
 **Responsabilidad única:** el flujo de "Administración del Sistema" (RF-19) completo: registro y **validación M2M con el Consorcio** de nuevos centros médicos, y registro/vinculación de dispositivos IoT. Reúne, bajo un solo servicio de M4, lo que en v3.0.0 estaba repartido incorrectamente entre `center-service` (M2+M4 mezclados) y `monitoring-service` (M1+M4 mezclados).
 
@@ -796,7 +796,7 @@ CREATE TABLE devices (
 );
 ```
 
-**Flujo — Validación M2M automática con el Consorcio (RF-19):**
+**Flujo - Validación M2M automática con el Consorcio (RF-19):**
 ```
 1. Admin: POST /api/admin/centers/register/  → status='pending_validation'
 2. admin-integracion-service publica "center.registration_requested" {center_id, license_number, specialties, geo}
@@ -807,7 +807,7 @@ CREATE TABLE devices (
    evaluacion-service actualiza su cache de lectura (centros_disponibles_cache)
 ```
 
-**Flujo — Registro de Dispositivos IoT (RF-19):**
+**Flujo - Registro de Dispositivos IoT (RF-19):**
 ```
 POST /api/admin/devices/register/  {patient_id, device_type, serial_number}
    Restringido a rol system_admin
@@ -834,7 +834,7 @@ POST /api/admin/devices/register/  {patient_id, device_type, serial_number}
 **Estructura de carpetas obligatoria:**
 ```
 samr/
-├── frontend/                       ← React SPA — solo conoce la URL del BFF
+├── frontend/                       ← React SPA - solo conoce la URL del BFF
 ├── bff/
 │   └── bff-service/                ← delante del Gateway (ver topología 2.3)
 ├── nginx/samr.conf                 ← API Gateway
@@ -918,7 +918,7 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL}
       - JWT_PRIVATE_KEY_PATH=/keys/private.pem   # solo este servicio monta la clave privada
     volumes: ["./keys:/keys:ro"]
-  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH — solo public.pem)
+  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH - solo public.pem)
 
 volumes: [pgdata]
 ```
@@ -936,8 +936,8 @@ volumes: [pgdata]
 10. `frontend/` + `bff/bff-service/`
 
 **Reglas absolutas para Claude Code (pegar en el prompt de generación):**
-1. Ningún servicio importa código de otro servicio — aislamiento total.
-2. Ningún microservicio implementa RF de más de un módulo (M1–M4) — ver sección 4 para la asignación exacta.
+1. Ningún servicio importa código de otro servicio - aislamiento total.
+2. Ningún microservicio implementa RF de más de un módulo (M1–M4) - ver sección 4 para la asignación exacta.
 3. JWT: solo `auth-service` firma (RS256, clave privada); los demás solo verifican (clave pública).
 4. Un schema PostgreSQL por servicio, sin Foreign Keys entre schemas.
 5. Comunicación entre servicios: RabbitMQ para eventos de dominio; `X-Service-Token` para llamadas HTTP M2M puntuales.
@@ -952,10 +952,10 @@ volumes: [pgdata]
 
 - **UUID como clave primaria** en todas las tablas de negocio (`gen_random_uuid()`), excepto `audit_log` que usa `BIGSERIAL` (orden de inserción es parte de la evidencia de auditoría).
 - **Convención de nombres de schema:** `{dominio}_db` en minúsculas (`auth_db`, `patient_db`, `solicitud_db`, `monitoring_db`, `evaluacion_db`, `teleconsult_db`, `emergency_db`, `cierre_db`, `historial_db`, `audit_db`, `admin_db`).
-- **JSONB para esquema dinámico** (conversaciones Vity, expediente consolidado, payload de eventos en `audit_log`) — nunca una tabla EAV ni columnas nullable especulativas.
+- **JSONB para esquema dinámico** (conversaciones Vity, expediente consolidado, payload de eventos en `audit_log`) - nunca una tabla EAV ni columnas nullable especulativas.
 - **Inmutabilidad declarativa:** cualquier tabla de auditoría/trazabilidad debe tener su `REVOKE UPDATE, DELETE` documentado en `scripts/init-db.sh`, no solo confiado al código de la aplicación.
 - **Índices obligatorios:** `patient_id` en toda tabla que lo contenga (consulta más frecuente del sistema); `GIN` sobre columnas `JSONB` consultadas por contenido.
-- **Sin Foreign Keys entre schemas** — las referencias a `patient_id`/`user_id`/`device_id`/`center_id` de otro servicio son *lógicas* (UUID), nunca `REFERENCES` cruzado. La consistencia se garantiza por evento, no por constraint de base de datos.
+- **Sin Foreign Keys entre schemas** - las referencias a `patient_id`/`user_id`/`device_id`/`center_id` de otro servicio son *lógicas* (UUID), nunca `REFERENCES` cruzado. La consistencia se garantiza por evento, no por constraint de base de datos.
 - **Script de inicialización (`scripts/init-db.sh`):** crea los 11 schemas de negocio, ejecuta `python manage.py migrate` de cada servicio, y aplica los `REVOKE` de la tabla `audit_log`.
 
 ## 5.3 Backend
@@ -979,18 +979,18 @@ CELERY_RESULT_BACKEND = "rpc://"
 
 **Middleware compartido (`shared/middleware/security.py`):** `X-Request-ID` por petición (trazabilidad entre logs de distintos servicios), validación estricta de `Content-Type`.
 
-**Tareas asíncronas (Celery):** todo cómputo que consulte otro servicio o tarde más de ~1 segundo va a un worker Celery, nunca en el hilo de la petición HTTP — aplica directamente a `evaluar_riesgo` y `ejecutar_matching` (evaluacion-service), `validar_solicitud_m2m` (solicitud-service), `validar_centro_m2m` (admin-integracion-service), envío de notificaciones (notification-service).
+**Tareas asíncronas (Celery):** todo cómputo que consulte otro servicio o tarde más de ~1 segundo va a un worker Celery, nunca en el hilo de la petición HTTP - aplica directamente a `evaluar_riesgo` y `ejecutar_matching` (evaluacion-service), `validar_solicitud_m2m` (solicitud-service), `validar_centro_m2m` (admin-integracion-service), envío de notificaciones (notification-service).
 
 **Manejo de eventos:** cada servicio arranca su(s) consumidor(es) RabbitMQ en un proceso separado (`manage.py consume_events`), nunca en el mismo hilo que atiende HTTP.
 
 ## 5.4 Frontend
 
-- **El Frontend solo conoce la URL del BFF** (`VITE_BFF_URL`) — ya no la del API Gateway directamente. El BFF es quien conoce la URL del Gateway, y el Gateway quien conoce la topología interna de los 12 microservicios. Esto profundiza el mismo principio que v3.0.0 ya aplicaba ("el frontend no conoce las URLs internas"), añadiendo una capa más de indirección correcta para el patrón BFF.
-- **Gestión de estado:** Zustand por dominio (`authStore`, `solicitudStore`, `monitoringStore`, `evaluacionStore`, `atencionStore`) — sin Redux, evita boilerplate innecesario para dominios que no se comunican entre sí.
+- **El Frontend solo conoce la URL del BFF** (`VITE_BFF_URL`) - ya no la del API Gateway directamente. El BFF es quien conoce la URL del Gateway, y el Gateway quien conoce la topología interna de los 12 microservicios. Esto profundiza el mismo principio que v3.0.0 ya aplicaba ("el frontend no conoce las URLs internas"), añadiendo una capa más de indirección correcta para el patrón BFF.
+- **Gestión de estado:** Zustand por dominio (`authStore`, `solicitudStore`, `monitoringStore`, `evaluacionStore`, `atencionStore`) - sin Redux, evita boilerplate innecesario para dominios que no se comunican entre sí.
 - **Peticiones HTTP:** Axios con interceptor que adjunta el JWT y reintenta una vez tras refrescar el token en un 401. Todas las peticiones van al BFF, no a Nginx.
-- **Datos del servidor:** `@tanstack/react-query` con `stale-while-revalidate` — la pantalla muestra el último dato conocido mientras refresca en segundo plano.
+- **Datos del servidor:** `@tanstack/react-query` con `stale-while-revalidate` - la pantalla muestra el último dato conocido mientras refresca en segundo plano.
 - **Resiliencia:** `ErrorBoundary` por módulo (un fallo de `solicitud-service` no debe tumbar la pantalla de monitoreo), `SkeletonLoader` en toda carga remota, reconexión WebSocket con backoff exponencial (1s→2s→4s→8s→30s máx.), banner de estado offline tras 3 intentos fallidos.
-- **WebRTC (teleconsulta):** `RTCPeerConnection` en el cliente, señalización vía el WebSocket ya definido en 3.3; sin librería adicional de video — WebRTC es nativo del navegador.
+- **WebRTC (teleconsulta):** `RTCPeerConnection` en el cliente, señalización vía el WebSocket ya definido en 3.3; sin librería adicional de video - WebRTC es nativo del navegador.
 
 ## 5.5 Seguridad
 
@@ -1000,21 +1000,21 @@ CELERY_RESULT_BACKEND = "rpc://"
 3. **RBAC explícito por vista**, no solo en el login: `permission_classes` específicas (`IsMedicalStaff`, `IsSystemAdmin`, `IsDPDDelegate`, `IsOwnerOrAdmin`) evaluadas en cada petición.
 4. **Cifrado en reposo:** Fernet (AES-128 + HMAC-SHA256) para cédula (patient-service); clave `FIELD_ENCRYPTION_KEY` solo en variables de entorno, nunca en código ni en la base de datos.
 5. **Cifrado en tránsito:** TLS 1.3 en Nginx y entre el Frontend y el BFF; tráfico interno Docker sin TLS (red privada, no expuesta).
-6. **Rate limiting + WAF** en Nginx (sección 3.1) — primera línea de defensa contra fuerza bruta y SQLi, antes de que la petición llegue a Django. El `bff-service`, al ser el único cliente autenticado que llama al Gateway desde dentro de la red de confianza, no necesita repetir el WAF — Nginx lo sigue aplicando igual a su tráfico.
-7. **Validación ORM:** Django ORM usa queries parametrizadas por defecto — sin concatenación de SQL en ningún servicio.
+6. **Rate limiting + WAF** en Nginx (sección 3.1) - primera línea de defensa contra fuerza bruta y SQLi, antes de que la petición llegue a Django. El `bff-service`, al ser el único cliente autenticado que llama al Gateway desde dentro de la red de confianza, no necesita repetir el WAF - Nginx lo sigue aplicando igual a su tráfico.
+7. **Validación ORM:** Django ORM usa queries parametrizadas por defecto - sin concatenación de SQL en ningún servicio.
 8. **Inmutabilidad de auditoría** a nivel de motor (`REVOKE UPDATE, DELETE`), no solo a nivel de aplicación.
 9. **Consentimiento LOPDP:** `patient-service` mantiene `consent_data`, `consent_ai`, `consent_sharing` como campos explícitos; ningún servicio de IA procesa datos sin verificar `consent_ai=True`.
-10. **Auditoría DPD restringida:** el endpoint de auditoría (`audit-service`) solo es accesible por el rol `dpd_delegate` — 403 inmediato para cualquier otro rol, sin exponer datos parciales.
-11. **Token de servicio interno** (`X-Service-Token`) distinto del JWT de usuario para toda llamada M2M — rotación cada 90 días.
+10. **Auditoría DPD restringida:** el endpoint de auditoría (`audit-service`) solo es accesible por el rol `dpd_delegate` - 403 inmediato para cualquier otro rol, sin exponer datos parciales.
+11. **Token de servicio interno** (`X-Service-Token`) distinto del JWT de usuario para toda llamada M2M - rotación cada 90 días.
 
 ## 5.6 UX/UI
 
 - **Accesibilidad WCAG 2.1 AA** como requisito funcional, no estético: contraste mínimo 4.5:1 (7:1 en alertas críticas), navegación completa por teclado, `aria-live="assertive"` en alertas de nivel crítico, áreas táctiles mínimas de 44×44px.
-- **Jerarquía de urgencia con semiótica redundante** (color + ícono + tipografía), nunca solo color — accesible para usuarios con daltonismo: crítico (rojo, pulso 1Hz), alto (naranja), moderado (amarillo), leve (verde).
-- **Comunicación de procesos asíncronos** (evaluación de riesgo IA, matching) mediante mensajes de progreso contextuales y Skeleton loaders — nunca un spinner genérico ni una barra de progreso falsa, para reducir la ansiedad percibida en momentos de urgencia médica.
-- **Componentes:** Radix UI (headless, accesible por defecto) + Tailwind CSS para el sistema de diseño — evita reconstruir accesibilidad desde cero.
+- **Jerarquía de urgencia con semiótica redundante** (color + ícono + tipografía), nunca solo color - accesible para usuarios con daltonismo: crítico (rojo, pulso 1Hz), alto (naranja), moderado (amarillo), leve (verde).
+- **Comunicación de procesos asíncronos** (evaluación de riesgo IA, matching) mediante mensajes de progreso contextuales y Skeleton loaders - nunca un spinner genérico ni una barra de progreso falsa, para reducir la ansiedad percibida en momentos de urgencia médica.
+- **Componentes:** Radix UI (headless, accesible por defecto) + Tailwind CSS para el sistema de diseño - evita reconstruir accesibilidad desde cero.
 
 ---
 
-*Documento de Arquitectura Maestro SAMR v4.0 — realineado contra ESP-HS-SAMR v1.0.5 (4 módulos), el Diagrama de Clases (Apéndice A) y `requisitosfuncionaes_nofuncionales.xlsx` (20 RF · 38 RNF).*
+*Documento de Arquitectura Maestro SAMR v4.0 - realineado contra ESP-HS-SAMR v1.0.5 (4 módulos), el Diagrama de Clases (Apéndice A) y `requisitosfuncionaes_nofuncionales.xlsx` (20 RF · 38 RNF).*
 *Stack final (sin cambios): Django 5.0 · DRF · Channels · Celery · RabbitMQ · Redis · PostgreSQL 16 · Nginx · React 18 · TypeScript · Docker.*

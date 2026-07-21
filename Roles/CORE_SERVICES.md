@@ -1,16 +1,16 @@
-# SAMR — Lógica de Negocio y Comunicación entre Servicios
+# SAMR - Lógica de Negocio y Comunicación entre Servicios
 ## Rama `logic/core-services`
 
 > Event Bus (RabbitMQ), catálogo de eventos de dominio, canal WebSocket en tiempo real, llamadas M2M y configuración de tareas asíncronas (Celery). Para responsabilidades de cada servicio ver `arch/system-design`; para los esquemas de datos que estos eventos leen/escriben ver `data/persistence-db`.
 
 ---
 
-# 1. Canal Asíncrono — RabbitMQ (Event Bus de Dominio)
+# 1. Canal Asíncrono - RabbitMQ (Event Bus de Dominio)
 
-Un único **exchange topic** llamado `samr.events`. Cada servicio declara su propia **cola** ligada a los *routing keys* que le interesan — patrón estándar de mensajería, sin código de reintento manual: RabbitMQ reencola automáticamente si el consumidor no confirma.
+Un único **exchange topic** llamado `samr.events`. Cada servicio declara su propia **cola** ligada a los *routing keys* que le interesan - patrón estándar de mensajería, sin código de reintento manual: RabbitMQ reencola automáticamente si el consumidor no confirma.
 
 ```python
-# shared/events/publisher.py — idéntico en todos los servicios
+# shared/events/publisher.py - idéntico en todos los servicios
 import pika, json, uuid
 from datetime import datetime, timezone
 from django.conf import settings
@@ -41,7 +41,7 @@ publicar_evento("solicitud.creada", {"solicitud_id": str(id), "patient_id": str(
 ```
 
 ```python
-# shared/events/consumer.py — patrón idéntico en todos los servicios
+# shared/events/consumer.py - patrón idéntico en todos los servicios
 import pika, json
 from django.conf import settings
 
@@ -75,7 +75,7 @@ def iniciar_consumidor(queue_name: str, routing_keys: list[str], callback):
     channel.start_consuming()
 ```
 
-**Por qué RabbitMQ y no Redis Streams:** ACK/NACK nativos, reintentos con Dead Letter Exchange configurado declarativamente (no en código), plugin de administración con UI web (`:15672`) para inspeccionar colas, y es la combinación históricamente más probada con Celery (que ya se usa para tareas asíncronas) — una sola tecnología de mensajería para eventos de dominio y tareas async, en vez de dos.
+**Por qué RabbitMQ y no Redis Streams:** ACK/NACK nativos, reintentos con Dead Letter Exchange configurado declarativamente (no en código), plugin de administración con UI web (`:15672`) para inspeccionar colas, y es la combinación históricamente más probada con Celery (que ya se usa para tareas asíncronas) - una sola tecnología de mensajería para eventos de dominio y tareas async, en vez de dos.
 
 ---
 
@@ -101,7 +101,7 @@ def iniciar_consumidor(queue_name: str, routing_keys: list[str], callback):
 | `ai.decision_logged` | `solicitud-service`, `evaluacion-service` | `audit-service` | M1/M2 → M4 | RF-18, RNF-35 |
 | `auth.login_success` / `auth.account_locked` | `auth-service` | `audit-service` | Transversal | RNF-01 |
 
-`audit-service` consume además `#` (wildcard) — registra todos los eventos del bus, sin excepción.
+`audit-service` consume además `#` (wildcard) - registra todos los eventos del bus, sin excepción.
 
 **Flujo Saga crítico (coreografiado, sin orquestador):**
 ```
@@ -115,12 +115,12 @@ solicitud-service (M1: chat + registro) → solicitud.creada / solicitud.validad
 
 ---
 
-# 3. Canal Tiempo Real — WebSocket (Django Channels + Redis)
+# 3. Canal Tiempo Real - WebSocket (Django Channels + Redis)
 
 Ambos servicios con WebSocket quedan cada uno en un solo módulo: `monitoring-service` es M1, `teleconsult-service` es M3.
 
 ```python
-# config/asgi.py — monitoring-service (M1) y teleconsult-service (M3)
+# config/asgi.py - monitoring-service (M1) y teleconsult-service (M3)
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": JWTAuthMiddlewareRS256(
@@ -158,7 +158,7 @@ Configuración del cliente (ver `ui/frontend-app` para el detalle React): `RTCPe
 
 ---
 
-# 4. Canal Interno M2M — Llamadas HTTP entre Servicios (incluye el BFF)
+# 4. Canal Interno M2M - Llamadas HTTP entre Servicios (incluye el BFF)
 
 ```python
 # BFF llamando al API Gateway (nunca a un microservicio directo)
@@ -175,11 +175,11 @@ async with httpx.AsyncClient(base_url="https://nginx-gateway") as client:
 headers = {"X-Service-Token": settings.INTERNAL_SERVICE_TOKEN}
 response = httpx.get("http://admin-integracion-service:8011/api/admin/centers/available/", headers=headers, timeout=5.0)
 ```
-El token interno (`X-Service-Token`) identifica al *servicio* llamador, no a una persona — la validación de este token y el JWT del usuario se detallan en `sec/security-hardening`. El BFF es la única pieza que usa el JWT del usuario (propagándolo) en vez del `X-Service-Token`, porque actúa en nombre del usuario.
+El token interno (`X-Service-Token`) identifica al *servicio* llamador, no a una persona - la validación de este token y el JWT del usuario se detallan en `sec/security-hardening`. El BFF es la única pieza que usa el JWT del usuario (propagándolo) en vez del `X-Service-Token`, porque actúa en nombre del usuario.
 
 ---
 
-# 5. Backend — Configuración de Tareas Asíncronas
+# 5. Backend - Configuración de Tareas Asíncronas
 
 **Configuración Celery compartida (`settings/base.py`):**
 ```python
@@ -190,10 +190,10 @@ CELERY_RESULT_BACKEND = "rpc://"
 **Middleware compartido (`shared/middleware/security.py`):** `X-Request-ID` por petición (trazabilidad entre logs de distintos servicios), validación estricta de `Content-Type`.
 
 **Tareas asíncronas (Celery):** todo cómputo que consulte otro servicio o tarde más de ~1 segundo va a un worker Celery, nunca en el hilo de la petición HTTP:
-- `evaluar_riesgo` y `ejecutar_matching` — `evaluacion-service`
-- `validar_solicitud_m2m` — `solicitud-service`
-- `validar_centro_m2m` — `admin-integracion-service`
-- envío de notificaciones — `notification-service`
+- `evaluar_riesgo` y `ejecutar_matching` - `evaluacion-service`
+- `validar_solicitud_m2m` - `solicitud-service`
+- `validar_centro_m2m` - `admin-integracion-service`
+- envío de notificaciones - `notification-service`
 
 **Manejo de eventos:** cada servicio arranca su(s) consumidor(es) RabbitMQ en un proceso separado (`manage.py consume_events`), nunca en el mismo hilo que atiende HTTP.
 

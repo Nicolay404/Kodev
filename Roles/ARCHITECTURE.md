@@ -1,4 +1,4 @@
-# SAMR — Arquitectura de Sistema
+# SAMR - Arquitectura de Sistema
 ## Rama `arch/system-design`
 
 > Patrones arquitectónicos, topología, límites de microservicios por módulo, y estructura de despliegue. Para el detalle de base de datos ver `data/persistence-db`; para eventos/RabbitMQ ver `logic/core-services`; para seguridad ver `sec/security-hardening`.
@@ -11,10 +11,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 
 | Módulo | Caso de uso | RF que agrupa | Actores (Apéndice A) |
 |---|---|---|---|
-| **M1 — Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
-| **M2 — Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
-| **M3 — Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
-| **M4 — Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
+| **M1 - Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
+| **M2 - Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
+| **M3 - Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
+| **M4 - Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
 
 **Principio rector:** un microservicio pertenece a un solo módulo de negocio (M1–M4). Ningún servicio mezcla responsabilidades de dos módulos distintos (excepto los explícitamente transversales: `auth-service`, `notification-service`, `bff-service`).
 
@@ -27,7 +27,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `center-service` | M2 (lectura de catálogo) + M4 (registro/validación) | Lectura → `evaluacion-service` (M2, cache de solo lectura); registro/validación → `admin-integracion-service` (M4) |
 | `monitoring-service` | M1 (ingesta IoT) + M4 (registro de dispositivos) | Ingesta/anomalías se queda en `monitoring-service` (M1); registro de dispositivos → `admin-integracion-service` (M4) |
 | `followup-service` + `interop-service` | M3 + M4 separados sin necesidad | Cierre de caso → `cierre-caso-service` (M3); historial consolidado + FHIR → `historial-interop-service` (M4) |
-| `bff-service` | — (mal ubicado en la topología) | Reposicionado: Frontend → BFF → API Gateway (antes vivía detrás del Gateway) |
+| `bff-service` | - (mal ubicado en la topología) | Reposicionado: Frontend → BFF → API Gateway (antes vivía detrás del Gateway) |
 
 ---
 
@@ -37,7 +37,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 |---|---|---|
 | **Database-per-Service** | Cada servicio posee su propio schema/base de datos; ningún JOIN entre schemas | 11 servicios con base de datos propia + 2 sin schema PostgreSQL propio (`notification-service` usa solo Redis, `bff-service` no persiste nada) |
 | **API Gateway** | Punto único de entrada para todo el tráfico que llega a los microservicios | Nginx: routing por prefijo, rate limiting, WAF, TLS, verificación JWT previa (ver `sec/security-hardening`) |
-| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway — nunca al revés |
+| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway - nunca al revés |
 | **Event-Driven / Coreografía** | Los servicios reaccionan a eventos publicados por otros, sin orquestador central | RabbitMQ (ver `logic/core-services`); ningún servicio le "ordena" a otro qué hacer |
 | **Saga Coreografiada** | Transacción distribuida sin coordinador central | `solicitud.creada (M1) → riesgo.evaluado (M2) → recursos.asignados (M2) → atencion.iniciada (M3) → caso.cerrado (M3) → historial.consolidado (M4)` |
 | **Un servicio, un módulo** | Ningún microservicio implementa RF de dos módulos distintos | Ver sección 1 y el desglose completo en la sección 4 |
@@ -52,10 +52,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 ╔══════════════════════════════════════════════════════════════════════╗
 ║        PACIENTES · PROFESIONALES · ADMINISTRADORES (Frontend React)   ║
 ╚═════════════════════════════════╦════════════════════════════════════╝
-                                   │ HTTPS — el Frontend SOLO conoce la URL del BFF
+                                   │ HTTPS - el Frontend SOLO conoce la URL del BFF
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  BFF-SERVICE — Backend For Frontend                                   ║
+║  BFF-SERVICE - Backend For Frontend                                   ║
 ║  Agrega patient + evaluacion + monitoring + atencion para el          ║
 ║  dashboard en una sola respuesta. Sin base de datos propia.           ║
 ║  Es cliente del API Gateway, nunca al revés.                          ║
@@ -63,7 +63,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
                                    │ HTTPS :443 (TLS 1.3) interno
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  NGINX — API GATEWAY                                                  ║
+║  NGINX - API GATEWAY                                                  ║
 ║  Rate limiting por zona · WAF regex · Headers de seguridad            ║
 ║  Verificación JWT (clave pública RS256) antes de rutear                ║
 ║  También expuesto directo a: apps móviles, dispositivos IoT           ║
@@ -110,16 +110,16 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
    └───────────────────┘└────────────┘└──────────────────────┘
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  RABBITMQ 3.13 — Event Bus (exchange topic `samr.events`)             ║
+║  RABBITMQ 3.13 - Event Bus (exchange topic `samr.events`)             ║
 ║  + broker de Celery (una sola tecnología de mensajería)                ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  REDIS 7.2 — Cache de lecturas + Channel Layer WebSocket (solamente)  ║
+║  REDIS 7.2 - Cache de lecturas + Channel Layer WebSocket (solamente)  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
-**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" — no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Colocándolo delante, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.*
+**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" - no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Colocándolo delante, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.*
 
 ---
 
@@ -129,8 +129,8 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 
 ## 4.0 Servicios Transversales
 
-### `auth-service` :8001 — Autenticación e Identidad
-**Responsabilidad única:** ciclo de vida de la identidad — registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA.
+### `auth-service` :8001 - Autenticación e Identidad
+**Responsabilidad única:** ciclo de vida de la identidad - registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -139,19 +139,19 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/auth/token/refresh/` | POST | Refresh token | RNF-01 |
 | `/api/auth/me/` | GET | JWT | RF-01 |
 
-### `notification-service` :8012 — Notificaciones Multi-Canal
+### `notification-service` :8012 - Notificaciones Multi-Canal
 **Responsabilidad única:** despacho de notificaciones push (FCM). Servicio puramente reactivo, sin endpoints de negocio.
 
-### `bff-service` — Backend For Frontend
+### `bff-service` - Backend For Frontend
 **Responsabilidad única:** agregar `patient + evaluacion + monitoring + cierre-caso` en una sola respuesta para el dashboard. Reposicionado entre el Frontend y el Gateway (sección 3).
 
 | Endpoint (directo al Frontend, no vía Nginx) | Método | Auth |
 |---|---|---|
 | `/dashboard/` | GET | JWT (propaga a servicios internos a través del Gateway) |
 
-## 4.1 M1 — Módulo de Solicitud (CU-001 · RF-01 a RF-07)
+## 4.1 M1 - Módulo de Solicitud (CU-001 · RF-01 a RF-07)
 
-### `patient-service` :8002 — Perfil Clínico del Paciente
+### `patient-service` :8002 - Perfil Clínico del Paciente
 **Responsabilidad única:** datos demográficos, alergias, condiciones crónicas, geolocalización, consentimientos LOPDP.
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -159,7 +159,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/patients/me/` | GET/PATCH | JWT (paciente) | RF-01 |
 | `/api/patients/{id}/summary/` | GET | X-Service-Token (M2M) | RF-08, RF-11 |
 
-### `solicitud-service` :8003 — Bot Conversacional, Registro y Validación de Solicitud
+### `solicitud-service` :8003 - Bot Conversacional, Registro y Validación de Solicitud
 **Responsabilidad única:** conversación con el paciente (RF-02, RF-07), registro de la solicitud médica (RF-03) y validación M2M con el Consorcio (RF-04).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -167,7 +167,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/solicitud/chat/` | POST | JWT (paciente) | RF-02, RF-07 |
 | `/api/solicitud/faq/` | GET/POST/PATCH | Admin JWT (POST/PATCH) | RF-07, RNF-12 |
 | `/api/solicitud/` | POST | JWT (paciente) | RF-03 |
-| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP — derecho al olvido |
+| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP - derecho al olvido |
 
 **Flujo de validación M2M con el Consorcio (RF-04):**
 ```
@@ -178,7 +178,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
    Si rechaza → estado='rechazada'
 ```
 
-### `monitoring-service` :8004 — IoT, Signos Vitales y Detección de Anomalías
+### `monitoring-service` :8004 - IoT, Signos Vitales y Detección de Anomalías
 **Responsabilidad única:** ingesta de datos IoT (RF-05), detección de anomalías (RF-06), WebSocket en tiempo real. No incluye registro administrativo de dispositivos (eso es `admin-integracion-service`, M4).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -187,10 +187,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/monitoring/alerts/` | GET | Medical/Admin JWT | RF-06 |
 | `ws/monitoring/{patient_id}/` | WebSocket | JWT (query param) | RF-06, RNF-10 |
 
-## 4.2 M2 — Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
+## 4.2 M2 - Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
 
-### `evaluacion-service` :8005 — Evaluación de Riesgo, Matching y Asignación de Recursos
-**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio: evaluación de riesgo con IA (RF-08), recomendaciones RAG (RF-09), búsqueda de centros disponibles — solo lectura (RF-10), matching (RF-11), asignación de recursos + notificación (RF-12).
+### `evaluacion-service` :8005 - Evaluación de Riesgo, Matching y Asignación de Recursos
+**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio: evaluación de riesgo con IA (RF-08), recomendaciones RAG (RF-09), búsqueda de centros disponibles - solo lectura (RF-10), matching (RF-11), asignación de recursos + notificación (RF-12).
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -198,25 +198,25 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/evaluacion/centros-disponibles/` | GET | X-Service-Token | RF-10 |
 | `/api/evaluacion/matching/{evaluacion_id}/` | POST | Medical/Admin JWT | RF-11, RF-12 |
 
-## 4.3 M3 — Módulo de Atención (CU-003 · RF-13 a RF-15)
+## 4.3 M3 - Módulo de Atención (CU-003 · RF-13 a RF-15)
 
-### `teleconsult-service` :8006 — Teleconsulta con Señalización WebRTC
-**Responsabilidad única:** sesión de teleconsulta (RF-13) — creación de sala, señalización WebRTC, chat, notas médicas.
+### `teleconsult-service` :8006 - Teleconsulta con Señalización WebRTC
+**Responsabilidad única:** sesión de teleconsulta (RF-13) - creación de sala, señalización WebRTC, chat, notas médicas.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
 | `/api/teleconsult/` | POST | Medical/Admin JWT | RF-13 |
 | `ws/teleconsult/{room_token}/` | WebSocket (señalización SDP/ICE) | JWT (query param) | RF-13 |
 
-### `emergency-service` :8007 — Gestión de Emergencias Médicas
-**Responsabilidad única:** exclusivamente RF-14 — protocolo de emergencias, guía de primeros auxilios, despacho de ambulancia. Ya no hace matching (eso es M2) ni valida solicitudes (eso es M1).
+### `emergency-service` :8007 - Gestión de Emergencias Médicas
+**Responsabilidad única:** exclusivamente RF-14 - protocolo de emergencias, guía de primeros auxilios, despacho de ambulancia. Ya no hace matching (eso es M2) ni valida solicitudes (eso es M1).
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
 | `/api/emergencies/` | POST/GET | JWT | RF-14 |
 | `/api/emergencies/{id}/dispatch/` | POST | Admin/Medical JWT | RF-14 |
 
-### `cierre-caso-service` :8008 — Actualización de Historial y Cierre del Caso
+### `cierre-caso-service` :8008 - Actualización de Historial y Cierre del Caso
 **Responsabilidad única:** actualización del historial clínico durante la atención y cierre operativo del caso (RF-15), verificación de integridad antes de cerrar (RNF-28).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -224,9 +224,9 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/cierre-caso/{id}/close/` | POST | Medical JWT | RF-15, RNF-28 |
 | `/api/cierre-caso/{id}/verify/` | GET | Medical/Admin JWT | RNF-28 |
 
-## 4.4 M4 — Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
+## 4.4 M4 - Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
 
-### `historial-interop-service` :8009 — Historial Clínico Consolidado e Interoperabilidad FHIR
+### `historial-interop-service` :8009 - Historial Clínico Consolidado e Interoperabilidad FHIR
 **Responsabilidad única:** expediente clínico consolidado por paciente (RF-16) y exposición en formato FHIR R4 a MSP/IESS/Consorcio (RF-17).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -234,7 +234,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/historial/{patient_id}/` | GET | Medical/Patient JWT | RF-16 |
 | `/api/history/fhir/{patient_id}/` | GET | Medical/Patient JWT + consentimiento | RF-17, RNF-32, RNF-34 |
 
-### `audit-service` :8010 — Auditoría Inmutable y Auditoría DPD
+### `audit-service` :8010 - Auditoría Inmutable y Auditoría DPD
 **Responsabilidad única:** registro append-only de decisiones de IA (RF-18) y auditoría DPD (RF-20).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -242,8 +242,8 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/audit/decisions/` | GET | JWT rol `dpd_delegate` | RF-20, RNF-38 |
 | `/api/audit/decisions/{audit_log_id}/review/` | PATCH | JWT rol `dpd_delegate` | RF-20 |
 
-### `admin-integracion-service` :8011 — Administración del Sistema (Centros y Dispositivos)
-**Responsabilidad única:** RF-19 completo — registro y validación M2M con el Consorcio de nuevos centros médicos, y registro/vinculación de dispositivos IoT.
+### `admin-integracion-service` :8011 - Administración del Sistema (Centros y Dispositivos)
+**Responsabilidad única:** RF-19 completo - registro y validación M2M con el Consorcio de nuevos centros médicos, y registro/vinculación de dispositivos IoT.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -258,7 +258,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 **Estructura de carpetas obligatoria:**
 ```
 samr/
-├── frontend/                       ← React SPA — solo conoce la URL del BFF
+├── frontend/                       ← React SPA - solo conoce la URL del BFF
 ├── bff/
 │   └── bff-service/                ← delante del Gateway (ver sección 3)
 ├── nginx/samr.conf                 ← API Gateway (ver sec/security-hardening)
@@ -342,7 +342,7 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL}
       - JWT_PRIVATE_KEY_PATH=/keys/private.pem   # solo este servicio monta la clave privada
     volumes: ["./keys:/keys:ro"]
-  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH — solo public.pem)
+  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH - solo public.pem)
 
 volumes: [pgdata]
 ```
@@ -360,7 +360,7 @@ volumes: [pgdata]
 10. `frontend/` + `bff/bff-service/`
 
 **Reglas absolutas :**
-1. Ningún servicio importa código de otro servicio — aislamiento total.
+1. Ningún servicio importa código de otro servicio - aislamiento total.
 2. Ningún microservicio implementa RF de más de un módulo (M1–M4).
 3. JWT: solo `auth-service` firma (RS256); los demás solo verifican.
 4. Un schema PostgreSQL por servicio, sin Foreign Keys entre schemas.

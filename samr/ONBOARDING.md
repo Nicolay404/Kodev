@@ -129,7 +129,7 @@ docker-compose down
 
 ---
 
-## Backend — URL local de RabbitMQ
+## Backend - URL local de RabbitMQ
 
 El vhost raíz `/` debe declararse codificado como `%2F` para que la misma URL funcione en Celery y Pika:
 
@@ -137,7 +137,7 @@ El vhost raíz `/` debe declararse codificado como `%2F` para que la misma URL f
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
 ```
 
-## Backend — Ejecutar pruebas
+## Backend - Ejecutar pruebas
 
 Desde `samr/`, ejecuta pytest dentro del contenedor del servicio que quieras validar:
 
@@ -145,11 +145,11 @@ Desde `samr/`, ejecuta pytest dentro del contenedor del servicio que quieras val
 docker compose exec auth-service python -m pytest -q
 ```
 
-## Backend — cifrado de datos de paciente
+## Backend - cifrado de datos de paciente
 
 `patient-service` requiere `PATIENT_DATA_KEY`. El valor de `.env.example` es exclusivamente local; genera una clave Fernet propia para ambientes compartidos o productivos.
 
-## Backend — simuladores MVP
+## Backend - simuladores MVP
 
 `MVP_FAQ_CONFIDENCE_THRESHOLD` controla el umbral de recuperación FAQ y `MVP_CONSORTIUM_OUTCOME` permite simular `validated`, `rejected` o `timeout`. Redis conserva respuestas FAQ durante 60 segundos mediante `REDIS_URL`. Estas opciones solo sustituyen integraciones externas durante el MVP.
 
@@ -169,7 +169,7 @@ Para el BFF local usa `BFF_ALLOWED_ORIGINS=http://localhost:3000` y `VERIFY_GATE
 
 `MVP_NOTIFICATION_BACKEND=log` conserva notificaciones como simulación trazable. Para probar el flujo deben estar activos tanto `notification-service` como `notification-consumer`.
 
-## Backend — arranque automático vigente del MVP
+## Backend - arranque automático vigente del MVP
 
 El comando vigente desde `samr/` es:
 

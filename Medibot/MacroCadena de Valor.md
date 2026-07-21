@@ -1,4 +1,4 @@
-# Macro Cadena Principal de Valor — Sistema de Atención Médica Remota (SAMR)
+# Macro Cadena Principal de Valor - Sistema de Atención Médica Remota (SAMR)
 
 ## 1. Módulo de Solicitud
 
