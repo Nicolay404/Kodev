@@ -11,9 +11,11 @@ x-django-service: &django-service
   volumes:
     - ./keys/public.pem:/keys/public.pem:ro
   environment:
-    DB_HOST: samr-postgres
-    POSTGRES_HOST: samr-postgres
-    DB_PORT: "5432"
+    DB_HOST: ${DB_HOST}
+    POSTGRES_HOST: ${DB_HOST}
+    DB_PORT: ${DB_PORT}
+    DB_USER: ${DB_USER}
+    DB_NAME: ${DB_NAME}
     RABBITMQ_URL: ${RABBITMQ_URL}
     DB_PASSWORD: ${DB_PASSWORD}
   restart: on-failure
@@ -25,20 +27,6 @@ x-django-service: &django-service
     start_period: 20s
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: samr-postgres
-    networks:
-      samr-net:
-        aliases:
-          - postgres
-    environment:
-      POSTGRES_USER: samr
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
-
   redis:
     image: redis:7.2-alpine
     container_name: samr-redis
@@ -52,6 +40,11 @@ services:
       - samr-net
     ports:
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:1.26-alpine
@@ -100,9 +93,9 @@ services:
     build: ./services/auth-service
     container_name: samr-auth
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: auth_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -116,9 +109,9 @@ services:
     build: ./services/notification-service
     container_name: samr-notification
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
@@ -129,21 +122,24 @@ services:
     container_name: samr-notification-consumer
     command: ["python", "manage.py", "consume_events"]
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   patient-service:
     <<: *django-service
     build: ./services/patient-service
     container_name: samr-patient
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: patient_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -154,9 +150,9 @@ services:
     build: ./services/solicitud-service
     container_name: samr-solicitud
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: solicitud_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -169,9 +165,9 @@ services:
     build: ./services/monitoring-service
     container_name: samr-monitoring
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: monitoring_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -184,9 +180,9 @@ services:
     build: ./services/evaluacion-service
     container_name: samr-evaluacion
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: evaluacion_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -199,9 +195,9 @@ services:
     build: ./services/teleconsult-service
     container_name: samr-teleconsult
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: teleconsult_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -211,9 +207,9 @@ services:
     build: ./services/emergency-service
     container_name: samr-emergency
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: emergency_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -224,9 +220,9 @@ services:
     build: ./services/cierre-caso-service
     container_name: samr-cierre-caso
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: cierre_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -236,9 +232,9 @@ services:
     build: ./services/historial-interop-service
     container_name: samr-historial-interop
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: historial_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -250,9 +246,9 @@ services:
     build: ./services/audit-service
     container_name: samr-audit
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: audit_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -262,9 +258,9 @@ services:
     build: ./services/admin-integracion-service
     container_name: samr-admin-integracion
     environment:
-      DB_HOST: samr-postgres
-      POSTGRES_HOST: samr-postgres
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST}
+      POSTGRES_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
       DB_NAME: admin_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -275,88 +271,124 @@ services:
       service: solicitud-service
     container_name: samr-solicitud-worker
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
-    depends_on: [postgres, rabbitmq, redis]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   solicitud-consumer:
     extends:
       service: solicitud-service
     container_name: samr-solicitud-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq, redis]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   monitoring-consumer:
     extends:
       service: monitoring-service
     container_name: samr-monitoring-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq, redis]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   evaluacion-worker:
     extends:
       service: evaluacion-service
     container_name: samr-evaluacion-worker
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   evaluacion-consumer:
     extends:
       service: evaluacion-service
     container_name: samr-evaluacion-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   teleconsult-consumer:
     extends:
       service: teleconsult-service
     container_name: samr-teleconsult-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   emergency-consumer:
     extends:
       service: emergency-service
     container_name: samr-emergency-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   cierre-caso-consumer:
     extends:
       service: cierre-caso-service
     container_name: samr-cierre-caso-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   historial-worker:
     extends:
       service: historial-interop-service
     container_name: samr-historial-worker
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
-    depends_on: [postgres, rabbitmq, redis]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   historial-consumer:
     extends:
       service: historial-interop-service
     container_name: samr-historial-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq, redis]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   audit-worker:
     extends:
       service: audit-service
     container_name: samr-audit-worker
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   audit-consumer:
     extends:
       service: audit-service
     container_name: samr-audit-consumer
     command: ["python", "manage.py", "consume_events"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   admin-integracion-worker:
     extends:
       service: admin-integracion-service
     container_name: samr-admin-integracion-worker
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
-    depends_on: [postgres, rabbitmq]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
