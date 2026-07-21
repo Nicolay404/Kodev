@@ -53,10 +53,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'audit_db'),
-        'USER': 'samr',
+        'USER': os.environ.get('DB_USER', 'samr'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'samr_postgres_password'),
         'HOST': os.environ.get('DB_HOST', 'postgres'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'OPTIONS': {
+            'options': '-c search_path=public'
+        },
     }
 }
 

@@ -40,6 +40,8 @@ services:
       - samr-net
     ports:
       - "15672:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SW69T9E4X7C8M2L1P"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -149,11 +151,12 @@ services:
     <<: *django-service
     build: ./services/solicitud-service
     container_name: samr-solicitud
-    environment:
+    environment:	
       DB_HOST: ${DB_HOST}
       POSTGRES_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: solicitud_db
+      DB_USER: ${DB_USER}
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_URL: ${REDIS_URL}
