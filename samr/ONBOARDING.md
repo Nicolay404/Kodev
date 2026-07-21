@@ -186,3 +186,39 @@ docker compose ps
 ```
 
 Las dependencias incorporadas son `celery==5.3.6` para `admin-integracion-service` y `redis==5.0.3` para `solicitud-service` e `historial-interop-service`; se instalan al reconstruir las imágenes.
+
+---
+
+## 7. Instrucciones para Levantar el Entorno (Base de Datos)
+
+De acuerdo a las últimas actualizaciones de la arquitectura (Fase 3 / v4.0), la inicialización de las bases de datos y la ejecución de las migraciones se realizan siguiendo estos pasos:
+
+1. **Asegurar variables de entorno:**
+   Verifica que tienes el archivo `.env` configurado en la raíz de `samr/` (como se indica en la sección 2). Asegúrate de tener `POSTGRES_USER=samr` y `DB_PASSWORD` / `PGPASSWORD` definidos de forma local.
+
+2. **Levantar Docker Compose:**
+   Levanta la red de contenedores, en particular la base de datos:
+   ```bash
+   docker-compose up -d --build
+   ```
+   *Nota 1: En el primer arranque, PostgreSQL ejecutará internamente el script `scripts/init-db.sh` mapeado en su volumen de inicialización (`docker-entrypoint-initdb.d`). Este script aprovisionará las 11 bases de datos aisladas y aplicará las reglas DDL de seguridad e inmutabilidad directamente desde el motor de la base de datos (ej. creación de los schemas con el tipo de dato JSONB, cifrado BYTEA, UUID, y la aplicación estricta de `REVOKE UPDATE, DELETE` en `audit_log`).*
+   *Nota 2: La configuración del `docker-compose.yml` ya incluye el uso correcto del alias de red `postgres` y la definición explícita de `DB_HOST=samr-postgres` para garantizar la conexión entre los servicios backend y la base de datos de manera aislada.*
+
+3. **Ejecutar las migraciones de Django:**
+   Si bien el script de BD inicializa la estructura de las tablas obligatorias asegurando las reglas DDL de negocio, los microservicios continúan aplicando sus migraciones con el ORM automáticamente durante su arranque. Para lanzar las migraciones manualmente en todo el cluster si necesitas resincronizar sin destruir el volumen, puedes usar:
+   ```bash
+   SERVICES=("samr-auth" "samr-patient" "samr-solicitud" "samr-monitoring" "samr-evaluacion" "samr-teleconsult" "samr-emergency" "samr-cierre-caso" "samr-historial-interop" "samr-audit" "samr-admin-integracion")
+   for svc in "${SERVICES[@]}"; do
+       docker exec $svc python manage.py migrate --noinput
+   done
+   ```
+
+4. **Creación de Superusuario Django (Opcional):**
+   La base de datos se inicializa y las migraciones se aplican automáticamente, por lo que este paso **solo es necesario si requieres acceder al panel de administración de Django (`/admin`)**.
+   ```bash
+   docker exec -it samr-auth python manage.py createsuperuser
+   ```
+   *Nota: Si estás ejecutando esto en entornos Windows o Git Bash, el comando anterior puede fallar por la falta de una terminal interactiva (TTY). En ese caso, debes anteponer `winpty`:*
+   ```bash
+   winpty docker exec -it samr-auth python manage.py createsuperuser
+   ```

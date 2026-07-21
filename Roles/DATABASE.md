@@ -259,3 +259,14 @@ No cubiertas por ninguna tabla propia (son actores externos o roles RBAC, no per
 
 ---
 *Ver también: `arch/system-design` (responsabilidades de cada servicio), `logic/core-services` (qué evento dispara cada escritura/lectura entre schemas).*
+
+---
+
+# 4. Bitácora de Decisiones Técnicas (v4.0 - Persistencia)
+
+**Decisión Arquitectónica sobre el Desacoplamiento de `init-db.sh`:**
+- Para mantener la infraestructura aislada y evitar el acoplamiento con los comandos del host, se decidió que el archivo `scripts/init-db.sh` actúe estrictamente como un **script nativo de inicialización de PostgreSQL**. 
+- Es montado en `docker-entrypoint-initdb.d` y ejecutado automáticamente por el motor de BD en el primer inicio.
+- **Responsabilidad Única del Script:** Crea las 11 bases de datos con codificación `UTF8` y define las tablas base (schemas) integrando explícitamente las reglas DDL del negocio (`UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `JSONB`, `BYTEA`).
+- **Inmutabilidad Asegurada:** Al definir el schema nativamente durante el `init-db.sh`, podemos aplicar de inmediato la instrucción `REVOKE UPDATE, DELETE ON audit_log FROM samr;` antes de que Django se conecte, garantizando la inmutabilidad de los registros de auditoría a nivel de motor.
+- **Sincronización del Backend:** Los servicios en Python seguirán ejecutando sus propias rutinas de migración (`manage.py migrate --noinput`). Como el schema DDL ya estará creado por `init-db.sh` cumpliendo las expectativas del ORM, Django sincronizará el estado de forma transparente, manteniendo un enfoque Database-First seguro y agnóstico a la aplicación.
