@@ -521,3 +521,70 @@ volumes: [pgdata]
 - Se añadió Celery a admin-integracion-service para ejecutar la validación M2M de centros fuera del hilo HTTP, como exige Core Services.
 - El BFF se limitó a propagar JWT al API Gateway y agrega en paralelo los cuatro contratos documentados (`patient`, `evaluacion`, `monitoring`, `atencion`); se eliminó TLS inseguro implícito y CORS wildcard.
 - `notification-service` consume exclusivamente el catálogo de eventos notificables en un proceso separado y delega el envío a `MVPLogNotificationAdapter`; `MVP_NOTIFICATION_BACKEND=log` marca explícitamente que FCM aún es simulado.
+
+# 5. Guía de Despliegue Local e Integración con Supabase
+
+## 5.1 Variables de Entorno (`.env`)
+
+Asegúrate de contar con el archivo `.env` en la raíz del proyecto configurado con las credenciales del servidor PostgreSQL de Supabase y las claves de encriptación requeridas:
+
+```env
+DB_HOST=db.deqyvnvfmrqlxhcbkzuv.supabase.co
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=<PASSWORD_DE_SUPABASE>
+
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+REDIS_URL=redis://redis:6379/0
+
+SECRET_KEY=your-super-secret-key
+PATIENT_DATA_KEY=wzd1e062k1A2WiEiHi8mBo52fy_jmDJKk8a2ZI11HLE=
+```
+
+## 5.2 Levantar la Infraestructura Docker Local
+
+Debido a que el contenedor de RabbitMQ puede demorar en la inicialización completa durante el primer arranque y hacer fallar el healthcheck de Docker (`container samr-rabbitmq is unhealthy`), sigue este procedimiento para garantizar un despliegue sin bloqueos:
+
+**Paso 1: Levantar los servicios sin evaluación estricta de dependencias**
+
+Ejecuta el despliegue desacoplado de dependencias para que todos los microservicios backend, el BFF y Nginx inicien correctamente:
+
+```bash
+docker compose up -d --no-deps
+```
+
+> Nota: Si prefieres levantar servicios específicos de la API y el proxy:
+> ```bash
+> docker compose up -d --no-deps bff-service nginx
+> ```
+
+**Paso 2: Verificar el estado de los contenedores**
+
+Consulta que los procesos estén en ejecución:
+
+```bash
+docker ps
+```
+
+## 5.3 Puertos y Accesos Locales
+
+Los microservicios backend residen en la red interna de Docker (bridge network). Las peticiones deben realizarse a través del BFF o del Proxy Inverso:
+
+- **Documentación Interactiva (Swagger BFF):** http://localhost:8000/docs
+- **Endpoint de Salud del BFF:** http://localhost:8000/health
+- **Gateway Nginx:** http://localhost
+- **Gestión de RabbitMQ (Consola Admin):** http://localhost:15672 (Usuario/Pass: `guest` / `guest`)
+
+## 5.4 Persistencia Multiesquema en Supabase
+
+Los microservicios están enlazados a la instancia remota de Supabase. Antes de realizar pruebas de escritura o lectura, confirma que los siguientes esquemas aislados se encuentren creados y accesibles:
+
+- `auth_db`
+- `cierre_db`
+- `emergency_db`
+- `evaluacion_db`
+- `admin_db`
+- `audit_db`
+- `solicitud_db`
+- `patient_db`
