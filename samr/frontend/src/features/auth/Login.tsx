@@ -8,11 +8,11 @@ export function Login() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const handleMockLogin = () => {
+  const handleLogin = () => {
     setLoading(true);
-    // Simulate API call to BFF
+    // TODO: Connect to real auth endpoint /api/auth/login/
     setTimeout(() => {
-      setAuth('mock-jwt-token-12345', {
+      setAuth('demo-jwt-token', {
         id: '1',
         name: 'Dr. Usuario Médico',
         role: 'medical_staff'
@@ -52,7 +52,7 @@ export function Login() {
           
           <Button 
             className="w-full mt-6" 
-            onClick={handleMockLogin}
+            onClick={handleLogin}
             disabled={loading}
           >
             {loading ? 'Iniciando sesión...' : 'Ingresar (Demo)'}

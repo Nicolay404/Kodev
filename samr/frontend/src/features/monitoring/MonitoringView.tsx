@@ -81,7 +81,7 @@ export function MonitoringView() {
           </div>
         </div>
 
-        {/* KPI: Temp (Static Mock) */}
+        {/* KPI: Temp (Static) */}
         <div className="bg-surface p-6 rounded-lg shadow-sm border border-gray-200 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-warning-50 text-warning-600 flex items-center justify-center">
             <Thermometer className="w-6 h-6" />
