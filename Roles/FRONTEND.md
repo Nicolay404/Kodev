@@ -1,4 +1,4 @@
-# SAMR — Frontend
+# SAMR - Frontend
 ## Rama `ui/frontend-app`
 
 > Stack React/TypeScript, gestión de estado, resiliencia del cliente y configuración WebRTC. Para el contrato de API que este frontend consume ver `arch/system-design`; para seguridad del lado del cliente (JWT) ver `sec/security-hardening`; para lineamientos visuales/accesibilidad ver `ux/design-prototypes`.
@@ -29,7 +29,7 @@
 
 # 2. Principio Clave: el Frontend solo conoce al BFF
 
-**El Frontend solo conoce la URL del BFF** (`VITE_BFF_URL`) — nunca la del API Gateway (Nginx) directamente, y mucho menos las URLs de los 12 microservicios internos. El BFF es quien conoce la URL del Gateway, y el Gateway quien conoce la topología interna (ver `arch/system-design`, sección de topología). Esto es una capa de indirección intencional: si un microservicio cambia de nombre, puerto o incluso se divide en dos, el Frontend no se entera — solo el BFF y el Gateway necesitan actualizarse.
+**El Frontend solo conoce la URL del BFF** (`VITE_BFF_URL`) - nunca la del API Gateway (Nginx) directamente, y mucho menos las URLs de los 12 microservicios internos. El BFF es quien conoce la URL del Gateway, y el Gateway quien conoce la topología interna (ver `arch/system-design`, sección de topología). Esto es una capa de indirección intencional: si un microservicio cambia de nombre, puerto o incluso se divide en dos, el Frontend no se entera - solo el BFF y el Gateway necesitan actualizarse.
 
 ```
 Frontend  →  BFF (VITE_BFF_URL)  →  API Gateway (conocido solo por el BFF)  →  microservicios
@@ -39,21 +39,21 @@ Frontend  →  BFF (VITE_BFF_URL)  →  API Gateway (conocido solo por el BFF)  
 
 # 3. Gestión de Estado
 
-- **Zustand por dominio** — sin Redux, evita boilerplate innecesario para dominios que no se comunican entre sí:
-  - `authStore` — sesión, rol, JWT en memoria (nunca en `localStorage` sin cifrar).
-  - `solicitudStore` — estado de la conversación con el bot y la solicitud en curso.
-  - `monitoringStore` — últimas lecturas de signos vitales (alimentado por WebSocket).
-  - `evaluacionStore` — resultado de evaluación de riesgo y matching en curso.
-  - `atencionStore` — estado de la teleconsulta / emergencia activa.
+- **Zustand por dominio** - sin Redux, evita boilerplate innecesario para dominios que no se comunican entre sí:
+  - `authStore` - sesión, rol, JWT en memoria (nunca en `localStorage` sin cifrar).
+  - `solicitudStore` - estado de la conversación con el bot y la solicitud en curso.
+  - `monitoringStore` - últimas lecturas de signos vitales (alimentado por WebSocket).
+  - `evaluacionStore` - resultado de evaluación de riesgo y matching en curso.
+  - `atencionStore` - estado de la teleconsulta / emergencia activa.
 - **Peticiones HTTP:** Axios con interceptor que adjunta el JWT y reintenta una vez tras refrescar el token en un 401. Todas las peticiones van al BFF, no a Nginx.
-- **Datos del servidor:** `@tanstack/react-query` con `stale-while-revalidate` — la pantalla muestra el último dato conocido mientras refresca en segundo plano.
+- **Datos del servidor:** `@tanstack/react-query` con `stale-while-revalidate` - la pantalla muestra el último dato conocido mientras refresca en segundo plano.
 
 ---
 
 # 4. Resiliencia del Cliente
 
-- **`ErrorBoundary` por módulo** — un fallo de `solicitud-service` no debe tumbar la pantalla de monitoreo; cada dominio (M1/M2/M3/M4) tiene su propio boundary.
-- **`SkeletonLoader`** en toda carga remota — nunca un spinner genérico ni una barra de progreso falsa (ver `ux/design-prototypes` para el razonamiento de por qué).
+- **`ErrorBoundary` por módulo** - un fallo de `solicitud-service` no debe tumbar la pantalla de monitoreo; cada dominio (M1/M2/M3/M4) tiene su propio boundary.
+- **`SkeletonLoader`** en toda carga remota - nunca un spinner genérico ni una barra de progreso falsa (ver `ux/design-prototypes` para el razonamiento de por qué).
 - **Reconexión WebSocket** con backoff exponencial: 1s → 2s → 4s → 8s → 30s máx.
 - **Banner de estado offline** tras 3 intentos fallidos consecutivos.
 
@@ -61,7 +61,7 @@ Frontend  →  BFF (VITE_BFF_URL)  →  API Gateway (conocido solo por el BFF)  
 
 # 5. WebRTC (Teleconsulta)
 
-`RTCPeerConnection` en el cliente, señalización vía el WebSocket ya definido en `logic/core-services` — sin librería adicional de video, WebRTC es nativo del navegador.
+`RTCPeerConnection` en el cliente, señalización vía el WebSocket ya definido en `logic/core-services` - sin librería adicional de video, WebRTC es nativo del navegador.
 
 ```javascript
 const pc = new RTCPeerConnection({

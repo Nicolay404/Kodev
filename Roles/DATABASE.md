@@ -1,4 +1,4 @@
-# SAMR — Base de Datos y Persistencia
+# SAMR - Base de Datos y Persistencia
 ## Rama `data/persistence-db`
 
 > Los 11 schemas PostgreSQL (Supabase), uno por servicio con base de datos propia, más las convenciones de modelado. Para responsabilidades de negocio ver `arch/system-design`; para el flujo de eventos que dispara cada escritura ver `logic/core-services`.
@@ -8,19 +8,19 @@
 # 1. Convenciones Generales
 
 - **UUID como clave primaria** en todas las tablas de negocio (`gen_random_uuid()`), excepto `audit_log` que usa `BIGSERIAL` (el orden de inserción es parte de la evidencia de auditoría).
-- **Convención de nombres de schema:** `{dominio}_db` en minúsculas — `auth_db`, `patient_db`, `solicitud_db`, `monitoring_db`, `evaluacion_db`, `teleconsult_db`, `emergency_db`, `cierre_db`, `historial_db`, `audit_db`, `admin_db` (**11 schemas** en total).
-- **JSONB para esquema dinámico** (conversaciones del bot, expediente consolidado, payload de eventos en `audit_log`) — nunca una tabla EAV ni columnas nullable especulativas.
+- **Convención de nombres de schema:** `{dominio}_db` en minúsculas - `auth_db`, `patient_db`, `solicitud_db`, `monitoring_db`, `evaluacion_db`, `teleconsult_db`, `emergency_db`, `cierre_db`, `historial_db`, `audit_db`, `admin_db` (**11 schemas** en total).
+- **JSONB para esquema dinámico** (conversaciones del bot, expediente consolidado, payload de eventos en `audit_log`) - nunca una tabla EAV ni columnas nullable especulativas.
 - **Inmutabilidad declarativa:** cualquier tabla de auditoría/trazabilidad debe tener su `REVOKE UPDATE, DELETE` documentado en `scripts/init-db.sh`, no solo confiado al código de la aplicación.
 - **Índices obligatorios:** `patient_id` en toda tabla que lo contenga (consulta más frecuente del sistema); `GIN` sobre columnas `JSONB` consultadas por contenido.
-- **Sin Foreign Keys entre schemas** — las referencias a `patient_id`/`user_id`/`device_id`/`center_id` de otro servicio son *lógicas* (UUID), nunca `REFERENCES` cruzado. La consistencia se garantiza por evento (ver `logic/core-services`), no por constraint de base de datos.
+- **Sin Foreign Keys entre schemas** - las referencias a `patient_id`/`user_id`/`device_id`/`center_id` de otro servicio son *lógicas* (UUID), nunca `REFERENCES` cruzado. La consistencia se garantiza por evento (ver `logic/core-services`), no por constraint de base de datos.
 - **Script de inicialización (`scripts/init-db.sh`):** crea los 11 schemas de negocio, ejecuta `python manage.py migrate` de cada servicio, y aplica los `REVOKE` de la tabla `audit_log`.
-- Motor: **PostgreSQL 16** (Supabase) para todo dato persistente. Redis solo para cache de lecturas y Channel Layer de WebSocket — nunca como almacén de negocio.
+- Motor: **PostgreSQL 16** (Supabase) para todo dato persistente. Redis solo para cache de lecturas y Channel Layer de WebSocket - nunca como almacén de negocio.
 
 ---
 
 # 2. Schema por Servicio
 
-## 2.1 `auth_db` — `auth-service` (transversal)
+## 2.1 `auth_db` - `auth-service` (transversal)
 ```sql
 CREATE TABLE auth_user (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,7 +33,7 @@ CREATE TABLE auth_user (
 );
 ```
 
-## 2.2 `patient_db` — `patient-service` (M1)
+## 2.2 `patient_db` - `patient-service` (M1)
 ```sql
 CREATE TABLE patients (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,7 +50,7 @@ CREATE TABLE patients (
 );
 ```
 
-## 2.3 `solicitud_db` — `solicitud-service` (M1)
+## 2.3 `solicitud_db` - `solicitud-service` (M1)
 ```sql
 CREATE TABLE solicitudes (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -77,9 +77,9 @@ CREATE TABLE faq_entries (
     updated_at  TIMESTAMPTZ DEFAULT now()
 );
 ```
-Redis (no negocio): `vity_cache:{hash_del_mensaje}` (TTL 60s) — cache de respuestas de FAQ.
+Redis (no negocio): `vity_cache:{hash_del_mensaje}` (TTL 60s) - cache de respuestas de FAQ.
 
-## 2.4 `monitoring_db` — `monitoring-service` (M1)
+## 2.4 `monitoring_db` - `monitoring-service` (M1)
 ```sql
 CREATE TABLE vital_signs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,7 +95,7 @@ CREATE TABLE monitoring_alerts (
 ```
 Redis (no negocio): `vitals:{patient_id}` (TTL 120s, últimas 50 lecturas).
 
-## 2.5 `evaluacion_db` — `evaluacion-service` (M2)
+## 2.5 `evaluacion_db` - `evaluacion-service` (M2)
 ```sql
 CREATE TABLE evaluaciones_riesgo (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,7 +114,7 @@ CREATE TABLE matchings (
 );
 
 -- Espejo de solo lectura de admin_db.centers, actualizado por evento
--- (center.validated / center.rejected — ver logic/core-services)
+-- (center.validated / center.rejected - ver logic/core-services)
 CREATE TABLE centros_disponibles_cache (
     center_id   UUID PRIMARY KEY,
     nombre      VARCHAR(255),
@@ -122,7 +122,7 @@ CREATE TABLE centros_disponibles_cache (
 );
 ```
 
-## 2.6 `teleconsult_db` — `teleconsult-service` (M3)
+## 2.6 `teleconsult_db` - `teleconsult-service` (M3)
 ```sql
 CREATE TABLE teleconsults (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,7 +134,7 @@ CREATE TABLE teleconsults (
 ```
 Redis (no negocio): `room:{room_token}` (TTL 3600s: estado de sala).
 
-## 2.7 `emergency_db` — `emergency-service` (M3)
+## 2.7 `emergency_db` - `emergency-service` (M3)
 ```sql
 CREATE TABLE emergency_cases (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -152,7 +152,7 @@ CREATE TABLE guias_primeros_auxilios (
 );
 ```
 
-## 2.8 `cierre_db` — `cierre-caso-service` (M3)
+## 2.8 `cierre_db` - `cierre-caso-service` (M3)
 ```sql
 CREATE TABLE clinical_cases (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -162,7 +162,7 @@ CREATE TABLE clinical_cases (
 );
 ```
 
-## 2.9 `historial_db` — `historial-interop-service` (M4)
+## 2.9 `historial_db` - `historial-interop-service` (M4)
 ```sql
 CREATE TABLE expedientes_consolidados (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -174,7 +174,7 @@ CREATE INDEX idx_expediente_gin ON expedientes_consolidados USING GIN (eventos);
 ```
 Redis (no negocio): cache de la composición FHIR (TTL 300s).
 
-## 2.10 `audit_db` — `audit-service` (M4)
+## 2.10 `audit_db` - `audit-service` (M4)
 ```sql
 CREATE TABLE audit_log (
     id            BIGSERIAL PRIMARY KEY,
@@ -203,7 +203,7 @@ CREATE TABLE audit_reviews (
 -- de la revisión, no la evidencia inmutable en sí.
 ```
 
-## 2.11 `admin_db` — `admin-integracion-service` (M4)
+## 2.11 `admin_db` - `admin-integracion-service` (M4)
 ```sql
 CREATE TABLE centers (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -231,8 +231,8 @@ CREATE TABLE devices (
 ```
 
 ## Sin schema propio
-- `notification-service` — solo Redis (preferencias de canal + cola de reintentos, TTL 24h).
-- `bff-service` — no persiste nada.
+- `notification-service` - solo Redis (preferencias de canal + cola de reintentos, TTL 24h).
+- `bff-service` - no persiste nada.
 
 ---
 
@@ -240,7 +240,7 @@ CREATE TABLE devices (
 
 | Tabla | Clase del Apéndice A que cubre |
 |---|---|
-| `patients` | Usuario (parcial — perfil clínico) |
+| `patients` | Usuario (parcial - perfil clínico) |
 | `solicitudes` | SolicitudMedica |
 | `vity_conversations`, `faq_entries` | (soporte de LLM/RAG, no son clases de dominio persistidas) |
 | `vital_signs`, `monitoring_alerts` | DispositivoMonitoreo, Alerta (parcial) |

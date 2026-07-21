@@ -1,7 +1,7 @@
-# 10 — UX Writing
-## SAMR — Sistema de Atención Médica Remota
+# 10 - UX Writing
+## SAMR - Sistema de Atención Médica Remota
 
-> Idioma base: **español** (el sistema soporta ES/EN vía i18next, arquitectura v4 — este copy deck es la fuente `es.json`; la traducción a `en.json` se deriva de este documento, no al revés). Todo el copy dirigido a paciente/familiar evita jerga médica y tecnicismos de sistema ("token", "endpoint", "payload" nunca llegan al usuario).
+> Idioma base: **español** (el sistema soporta ES/EN vía i18next, arquitectura v4 - este copy deck es la fuente `es.json`; la traducción a `en.json` se deriva de este documento, no al revés). Todo el copy dirigido a paciente/familiar evita jerga médica y tecnicismos de sistema ("token", "endpoint", "payload" nunca llegan al usuario).
 
 ---
 
@@ -10,10 +10,10 @@
 | Principio | Qué significa en SAMR |
 |---|---|
 | **Claro antes que formal** | "No pudimos guardar tu solicitud" en vez de "Se ha producido un error en el procesamiento de la solicitud" |
-| **Calmado, nunca alarmista fuera de lugar** | El tono se reserva la urgencia real para cuando realmente hay urgencia — un error de red no suena igual que una alerta crítica |
-| **Directo, sin diminutivos infantilizantes** | Nunca "¡Uy, algo salió mal!" — trata al usuario como adulto, incluso en un error |
+| **Calmado, nunca alarmista fuera de lugar** | El tono se reserva la urgencia real para cuando realmente hay urgencia - un error de red no suena igual que una alerta crítica |
+| **Directo, sin diminutivos infantilizantes** | Nunca "¡Uy, algo salió mal!" - trata al usuario como adulto, incluso en un error |
 | **Instructivo, no solo descriptivo** | Todo mensaje de error indica qué hacer, no solo qué pasó |
-| **Consistente en persona gramatical** | Siempre segunda persona singular ("tu solicitud", "puedes reintentar") — nunca mezcla con "usted" ni con tercera persona impersonal |
+| **Consistente en persona gramatical** | Siempre segunda persona singular ("tu solicitud", "puedes reintentar") - nunca mezcla con "usted" ni con tercera persona impersonal |
 
 ---
 
@@ -50,20 +50,20 @@
 | Cuenta bloqueada (5 intentos) | Tu cuenta está bloqueada temporalmente por seguridad. Podrás intentarlo de nuevo en {tiempo}. |
 | Email ya registrado | Ya existe una cuenta con este correo. ¿Quieres iniciar sesión? |
 | Contraseña no cumple política | La contraseña debe tener al menos 8 caracteres, con letras y números. |
-| Falla de red genérica | No pudimos conectar. Tus datos no se perdieron — intenta de nuevo. |
+| Falla de red genérica | No pudimos conectar. Tus datos no se perdieron - intenta de nuevo. |
 | Timeout de orientación del bot | Esto está tardando más de lo normal. Puedes seguir esperando o continuar sin orientación previa. |
 | Validación de solicitud pendiente/reintento | Estamos validando tu solicitud, está tomando un poco más de tiempo de lo usual. No necesitas hacer nada. |
 | Solicitud rechazada por datos incompletos | Tu solicitud necesita {campo faltante} para continuar. |
-| Sin centros disponibles al ejecutar matching (mensaje real, sin reintento automático — ver [00](00-alineacion-backend.md) §G5) | No hay centros disponibles en este momento. Puedes intentarlo de nuevo en unos minutos. |
+| Sin centros disponibles al ejecutar matching (mensaje real, sin reintento automático - ver [00](00-alineacion-backend.md) §G5) | No hay centros disponibles en este momento. Puedes intentarlo de nuevo en unos minutos. |
 | Corte de conexión en teleconsulta | Reconectando… |
 | Reconexión fallida tras 3 intentos | Perdimos la conexión. Puedes llamar directamente a {teléfono del centro} mientras lo resolvemos. |
 | Falla de cámara/micrófono | No detectamos tu {cámara/micrófono}. Revisa los permisos del navegador e intenta de nuevo. |
 | Alerta de emergencia no entregada tras reintentos | No pudimos confirmar que la alerta llegó. Estamos intentando por otro medio. |
 | Cierre de caso con datos incompletos | Completa {campo} antes de cerrar este caso. |
-| Confirmación de envío de centro (no hay forma de saber el resultado — ver [00](00-alineacion-backend.md) §G6) | Centro enviado para validación. La revisión es automática; si es aprobado, aparecerá en el catálogo de centros disponibles. |
+| Confirmación de envío de centro (no hay forma de saber el resultado - ver [00](00-alineacion-backend.md) §G6) | Centro enviado para validación. La revisión es automática; si es aprobado, aparecerá en el catálogo de centros disponibles. |
 | Acceso sin permisos (403) | No tienes permiso para ver esta información. |
 | Página no encontrada (404) | No encontramos lo que buscabas. |
-| Error de servidor (500) | Algo falló de nuestro lado. Ya lo estamos revisando — intenta de nuevo en unos minutos. |
+| Error de servidor (500) | Algo falló de nuestro lado. Ya lo estamos revisando - intenta de nuevo en unos minutos. |
 | Modo mantenimiento | SAMR está en mantenimiento programado. Volvemos en {tiempo estimado}. |
 
 ---
@@ -77,7 +77,7 @@
 | Revocar consentimiento (privacidad) | ¿Retirar este consentimiento? | Podrías perder acceso a funciones que dependen de él, como la orientación por IA. | Sí, retirar |
 | Eliminar conversación (derecho al olvido) | ¿Eliminar esta conversación? | Se eliminará de forma permanente y no podrá recuperarse. | Sí, eliminar |
 | Salir de teleconsulta en curso | ¿Salir de la consulta? | Aún estás en sesión con tu profesional de salud. | Sí, salir |
-| Cerrar sesión | ¿Cerrar sesión? | — | Sí, cerrar sesión |
+| Cerrar sesión | ¿Cerrar sesión? | - | Sí, cerrar sesión |
 
 ---
 
@@ -89,7 +89,7 @@
 | Ícono de fuente RAG | Evidencia clínica usada por la IA para esta evaluación |
 | Ícono de nivel de confianza del modelo | Qué tan segura está la IA de este resultado |
 | Botón "Ajustar nivel de riesgo" | Puedes corregir el nivel calculado por la IA con tu criterio clínico |
-| Indicador de conexión degradada | Tu conexión es inestable — algunas funciones pueden tardar más |
+| Indicador de conexión degradada | Tu conexión es inestable - algunas funciones pueden tardar más |
 | Botón colapsar sidebar | Contraer menú |
 | Switch de accesibilidad | Cambios visibles de inmediato en tu pantalla |
 
@@ -106,7 +106,7 @@
 | Comentario de auditoría | Agrega una observación (opcional) |
 | Motivo de rechazo | Explica brevemente por qué se rechaza |
 
-**Regla**: ningún placeholder reemplaza a un `<label>` visible (doc 09 §9.9) — siempre es información complementaria, nunca la única identificación del campo.
+**Regla**: ningún placeholder reemplaza a un `<label>` visible (doc 09 §9.9) - siempre es información complementaria, nunca la única identificación del campo.
 
 ---
 
@@ -115,10 +115,10 @@
 | Pantalla | Título | Descripción | Acción |
 |---|---|---|---|
 | `/app/solicitudes` sin solicitudes previas | Aún no tienes solicitudes | Cuando reportes un síntoma, aparecerá aquí con su estado en tiempo real. | Crear mi primera solicitud |
-| `/app/dispositivos` sin dispositivos vinculados | No tienes dispositivos vinculados | Un administrador de tu centro médico puede vincular un dispositivo de monitoreo a tu perfil. | — |
-| `/app/casos` sin casos en cola | No hay casos pendientes ahora mismo | Los nuevos casos aparecerán aquí, priorizados por nivel de riesgo. | — |
-| `/app/historial` sin eventos | Todavía no hay eventos en este expediente | El historial se completa automáticamente con cada atención. | — |
-| `/app/notificaciones` sin notificaciones | Estás al día | No tienes notificaciones nuevas. | — |
+| `/app/dispositivos` sin dispositivos vinculados | No tienes dispositivos vinculados | Un administrador de tu centro médico puede vincular un dispositivo de monitoreo a tu perfil. | - |
+| `/app/casos` sin casos en cola | No hay casos pendientes ahora mismo | Los nuevos casos aparecerán aquí, priorizados por nivel de riesgo. | - |
+| `/app/historial` sin eventos | Todavía no hay eventos en este expediente | El historial se completa automáticamente con cada atención. | - |
+| `/app/notificaciones` sin notificaciones | Estás al día | No tienes notificaciones nuevas. | - |
 | `/app/admin/centros` sin centros | Aún no hay centros registrados | Registra el primer centro médico del consorcio. | Registrar centro |
 | `/app/auditoria` sin resultados de filtro | No encontramos decisiones con esos filtros | Prueba ajustando el rango de fecha o el nivel de riesgo. | Limpiar filtros |
 
@@ -126,22 +126,22 @@
 
 ## 10.8 Onboarding
 
-**Primer ingreso — Paciente** (tooltip guiado breve, máximo 3 pasos, siempre descartable):
+**Primer ingreso - Paciente** (tooltip guiado breve, máximo 3 pasos, siempre descartable):
 1. "Aquí puedes contarnos qué síntomas tienes, cuando quieras." → señala "Nueva solicitud".
 2. "Te avisaremos aquí en cada paso de tu solicitud." → señala Notificaciones.
-3. "Si algo es urgente, lo verás resaltado de inmediato — no tienes que buscarlo." → señala zona de alerta del dashboard.
+3. "Si algo es urgente, lo verás resaltado de inmediato - no tienes que buscarlo." → señala zona de alerta del dashboard.
 
-**Primer ingreso — Profesional de Salud**:
+**Primer ingreso - Profesional de Salud**:
 1. "Tus casos aparecen priorizados por nivel de riesgo, no por orden de llegada." → señala cola de casos.
-2. "Cada evaluación de IA muestra su evidencia — un clic y la ves." → señala sección de fuentes RAG.
+2. "Cada evaluación de IA muestra su evidencia - un clic y la ves." → señala sección de fuentes RAG.
 
-**Primer ingreso — Administrador SAMR / DPD**: sin onboarding guiado — son roles de uso profesional recurrente, se asume capacitación previa fuera del producto; solo tooltips contextuales bajo demanda (ícono "?" junto a términos técnicos como "validación M2M").
+**Primer ingreso - Administrador SAMR / DPD**: sin onboarding guiado - son roles de uso profesional recurrente, se asume capacitación previa fuera del producto; solo tooltips contextuales bajo demanda (ícono "?" junto a términos técnicos como "validación M2M").
 
 ---
 
 ## 10.9 Notificaciones (push / in-app)
 
-🔴 **Pendiente de backend en su totalidad** ([00](00-alineacion-backend.md) §G7) — `notification-service` no entrega nada a un cliente hoy (solo loguea internamente). Este copy se conserva como especificación lista para cuando exista push/WebSocket real.
+🔴 **Pendiente de backend en su totalidad** ([00](00-alineacion-backend.md) §G7) - `notification-service` no entrega nada a un cliente hoy (solo loguea internamente). Este copy se conserva como especificación lista para cuando exista push/WebSocket real.
 
 | Evento | Texto |
 |---|---|
@@ -149,8 +149,8 @@
 | Riesgo evaluado (no crítico) | Ya evaluamos tu caso. Nivel de riesgo: {nivel}. |
 | Escalamiento a caso prioritario | Tu caso fue priorizado para atención inmediata. |
 | Recursos asignados | Tienes una teleconsulta asignada con {profesional} a las {hora}. |
-| Emergencia — anomalía detectada | Detectamos una posible anomalía en tus signos vitales y ya iniciamos una solicitud. |
-| Emergencia — alerta crítica | **Emergencia detectada.** Abre la app ahora para ver qué hacer. |
+| Emergencia - anomalía detectada | Detectamos una posible anomalía en tus signos vitales y ya iniciamos una solicitud. |
+| Emergencia - alerta crítica | **Emergencia detectada.** Abre la app ahora para ver qué hacer. |
 | Ambulancia despachada | Una ambulancia va en camino. Llegada estimada: {tiempo}. |
 | Teleconsulta por comenzar | Tu teleconsulta empieza en 5 minutos. |
 | Caso cerrado | Tu atención fue registrada. Puedes ver el resumen aquí. |
@@ -160,7 +160,7 @@
 
 ---
 
-## 10.10 Guía de primeros auxilios — estilo de escritura
+## 10.10 Guía de primeros auxilios - estilo de escritura
 
 Cada paso: **verbo en imperativo, una sola acción, máximo 15 palabras.**
 
@@ -183,7 +183,7 @@ Ejemplo (referencial, el contenido clínico real lo genera el RAG/LLM, pero debe
 
 ## 10.12 Estados de carga (microcopy, no solo skeleton visual)
 
-> ⚠️ **Ajustado contra backend real** ([00](00-alineacion-backend.md) §0.5): la fila "Generando guía de primeros auxilios" se retira — el contenido es estático y llega en la misma respuesta que crea la emergencia, no hay espera real que comunicar (mostrar el contenido de inmediato, sin este mensaje). Las filas de "Validando con el Consorcio" y "Buscando centros" describen un estado que existe en la base de datos pero que hoy no es consultable por el frontend (§G2/§G6) — se conservan como especificación para cuando exista el endpoint, no para conectarse a un mock.
+> ⚠️ **Ajustado contra backend real** ([00](00-alineacion-backend.md) §0.5): la fila "Generando guía de primeros auxilios" se retira - el contenido es estático y llega en la misma respuesta que crea la emergencia, no hay espera real que comunicar (mostrar el contenido de inmediato, sin este mensaje). Las filas de "Validando con el Consorcio" y "Buscando centros" describen un estado que existe en la base de datos pero que hoy no es consultable por el frontend (§G2/§G6) - se conservan como especificación para cuando exista el endpoint, no para conectarse a un mock.
 
 | Contexto | Texto contextual (acompaña al Skeleton, doc 06.29) |
 |---|---|

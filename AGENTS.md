@@ -1,4 +1,4 @@
-# SAMR — Arquitectura de Sistema
+# SAMR - Arquitectura de Sistema
 ## Rama `arch/system-design`
 
 > Patrones arquitectónicos, topología, límites de microservicios por módulo, y estructura de despliegue. Para el detalle de base de datos ver `data/persistence-db`; para eventos/RabbitMQ ver `logic/core-services`; para seguridad ver `sec/security-hardening`.
@@ -11,10 +11,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 
 | Módulo | Caso de uso | RF que agrupa | Actores (Apéndice A) |
 |---|---|---|---|
-| **M1 — Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
-| **M2 — Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
-| **M3 — Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
-| **M4 — Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
+| **M1 - Módulo de Solicitud** | CU-001 | RF-01 a RF-07 | Usuario (Paciente/Familiar), LLM, RAG, Consorcio, DispositivoMonitoreo |
+| **M2 - Módulo de Evaluación y Asignación** | CU-002 | RF-08 a RF-12 | LLM, RAG, ProfesionalSalud, CentroMedico |
+| **M3 - Módulo de Atención** | CU-003 | RF-13 a RF-15 | ProfesionalSalud, Paciente, LLM, RAG, EnfermeroParamedico, Familiar |
+| **M4 - Módulo de Integración e Interoperabilidad Clínica** | CU-004 | RF-16 a RF-20 | AdministradorSAMR, Usuario, EntidadExterna (IESS/MSP), Consorcio, DelegadoDPD |
 
 **Principio rector:** un microservicio pertenece a un solo módulo de negocio (M1–M4). Ningún servicio mezcla responsabilidades de dos módulos distintos (excepto los explícitamente transversales: `auth-service`, `notification-service`, `bff-service`).
 
@@ -27,7 +27,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `center-service` | M2 (lectura de catálogo) + M4 (registro/validación) | Lectura → `evaluacion-service` (M2, cache de solo lectura); registro/validación → `admin-integracion-service` (M4) |
 | `monitoring-service` | M1 (ingesta IoT) + M4 (registro de dispositivos) | Ingesta/anomalías se queda en `monitoring-service` (M1); registro de dispositivos → `admin-integracion-service` (M4) |
 | `followup-service` + `interop-service` | M3 + M4 separados sin necesidad | Cierre de caso → `cierre-caso-service` (M3); historial consolidado + FHIR → `historial-interop-service` (M4) |
-| `bff-service` | — (mal ubicado en la topología) | Reposicionado: Frontend → BFF → API Gateway (antes vivía detrás del Gateway) |
+| `bff-service` | - (mal ubicado en la topología) | Reposicionado: Frontend → BFF → API Gateway (antes vivía detrás del Gateway) |
 
 ---
 
@@ -37,7 +37,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 |---|---|---|
 | **Database-per-Service** | Cada servicio posee su propio schema/base de datos; ningún JOIN entre schemas | 11 servicios con base de datos propia + 2 sin schema PostgreSQL propio (`notification-service` usa solo Redis, `bff-service` no persiste nada) |
 | **API Gateway** | Punto único de entrada para todo el tráfico que llega a los microservicios | Nginx: routing por prefijo, rate limiting, WAF, TLS, verificación JWT previa (ver `sec/security-hardening`) |
-| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway — nunca al revés |
+| **Backend For Frontend (BFF), reubicado** | Capa de agregación **delante** del API Gateway, exclusiva del cliente web | `bff-service` recibe las peticiones del Frontend, agrega `patient + evaluacion + monitoring + atención` en una sola respuesta, y es quien llama al API Gateway - nunca al revés |
 | **Event-Driven / Coreografía** | Los servicios reaccionan a eventos publicados por otros, sin orquestador central | RabbitMQ (ver `logic/core-services`); ningún servicio le "ordena" a otro qué hacer |
 | **Saga Coreografiada** | Transacción distribuida sin coordinador central | `solicitud.creada (M1) → riesgo.evaluado (M2) → recursos.asignados (M2) → atencion.iniciada (M3) → caso.cerrado (M3) → historial.consolidado (M4)` |
 | **Un servicio, un módulo** | Ningún microservicio implementa RF de dos módulos distintos | Ver sección 1 y el desglose completo en la sección 4 |
@@ -52,10 +52,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 ╔══════════════════════════════════════════════════════════════════════╗
 ║        PACIENTES · PROFESIONALES · ADMINISTRADORES (Frontend React)   ║
 ╚═════════════════════════════════╦════════════════════════════════════╝
-                                   │ HTTPS — el Frontend SOLO conoce la URL del BFF
+                                   │ HTTPS - el Frontend SOLO conoce la URL del BFF
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  BFF-SERVICE — Backend For Frontend                                   ║
+║  BFF-SERVICE - Backend For Frontend                                   ║
 ║  Agrega patient + evaluacion + monitoring + atencion para el          ║
 ║  dashboard en una sola respuesta. Sin base de datos propia.           ║
 ║  Es cliente del API Gateway, nunca al revés.                          ║
@@ -63,7 +63,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
                                    │ HTTPS :443 (TLS 1.3) interno
                                    ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  NGINX — API GATEWAY                                                  ║
+║  NGINX - API GATEWAY                                                  ║
 ║  Rate limiting por zona · WAF regex · Headers de seguridad            ║
 ║  Verificación JWT (clave pública RS256) antes de rutear                ║
 ║  También expuesto directo a: apps móviles, dispositivos IoT           ║
@@ -110,16 +110,16 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
    └───────────────────┘└────────────┘└──────────────────────┘
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  RABBITMQ 3.13 — Event Bus (exchange topic `samr.events`)             ║
+║  RABBITMQ 3.13 - Event Bus (exchange topic `samr.events`)             ║
 ║  + broker de Celery (una sola tecnología de mensajería)                ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║  REDIS 7.2 — Cache de lecturas + Channel Layer WebSocket (solamente)  ║
+║  REDIS 7.2 - Cache de lecturas + Channel Layer WebSocket (solamente)  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
-**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" — no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Colocándolo delante, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.*
+**Por qué el BFF va antes del Gateway y no detrás:** el BFF no es "un microservicio de negocio más" - no implementa ningún RF por sí mismo, solo agrega respuestas de otros servicios para reducir las llamadas paralelas que el dashboard tendría que hacer. Colocándolo delante, el contrato queda más limpio: *el Frontend solo habla con el BFF; el BFF solo habla con el Gateway; el Gateway es el único que conoce la topología interna de los 12 microservicios de negocio.*
 
 ---
 
@@ -129,8 +129,8 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 
 ## 4.0 Servicios Transversales
 
-### `auth-service` :8001 — Autenticación e Identidad
-**Responsabilidad única:** ciclo de vida de la identidad — registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA.
+### `auth-service` :8001 - Autenticación e Identidad
+**Responsabilidad única:** ciclo de vida de la identidad - registro, login, emisión/revocación de JWT (RS256), bloqueo por intentos fallidos, RBAC. Es el único servicio con la clave privada RSA.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -139,19 +139,19 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/auth/token/refresh/` | POST | Refresh token | RNF-01 |
 | `/api/auth/me/` | GET | JWT | RF-01 |
 
-### `notification-service` :8012 — Notificaciones Multi-Canal
+### `notification-service` :8012 - Notificaciones Multi-Canal
 **Responsabilidad única:** despacho de notificaciones push (FCM). Servicio puramente reactivo, sin endpoints de negocio.
 
-### `bff-service` — Backend For Frontend
+### `bff-service` - Backend For Frontend
 **Responsabilidad única:** agregar `patient + evaluacion + monitoring + cierre-caso` en una sola respuesta para el dashboard. Reposicionado entre el Frontend y el Gateway (sección 3).
 
 | Endpoint (directo al Frontend, no vía Nginx) | Método | Auth |
 |---|---|---|
 | `/dashboard/` | GET | JWT (propaga a servicios internos a través del Gateway) |
 
-## 4.1 M1 — Módulo de Solicitud (CU-001 · RF-01 a RF-07)
+## 4.1 M1 - Módulo de Solicitud (CU-001 · RF-01 a RF-07)
 
-### `patient-service` :8002 — Perfil Clínico del Paciente
+### `patient-service` :8002 - Perfil Clínico del Paciente
 **Responsabilidad única:** datos demográficos, alergias, condiciones crónicas, geolocalización, consentimientos LOPDP.
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -159,7 +159,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/patients/me/` | GET/PATCH | JWT (paciente) | RF-01 |
 | `/api/patients/{id}/summary/` | GET | X-Service-Token (M2M) | RF-08, RF-11 |
 
-### `solicitud-service` :8003 — Bot Conversacional, Registro y Validación de Solicitud
+### `solicitud-service` :8003 - Bot Conversacional, Registro y Validación de Solicitud
 **Responsabilidad única:** conversación con el paciente (RF-02, RF-07), registro de la solicitud médica (RF-03) y validación M2M con el Consorcio (RF-04).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -167,7 +167,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/solicitud/chat/` | POST | JWT (paciente) | RF-02, RF-07 |
 | `/api/solicitud/faq/` | GET/POST/PATCH | Admin JWT (POST/PATCH) | RF-07, RNF-12 |
 | `/api/solicitud/` | POST | JWT (paciente) | RF-03 |
-| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP — derecho al olvido |
+| `/api/solicitud/conversations/{id}/` | DELETE | JWT (dueño) | LOPDP - derecho al olvido |
 
 **Flujo de validación M2M con el Consorcio (RF-04):**
 ```
@@ -178,7 +178,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
    Si rechaza → estado='rechazada'
 ```
 
-### `monitoring-service` :8004 — IoT, Signos Vitales y Detección de Anomalías
+### `monitoring-service` :8004 - IoT, Signos Vitales y Detección de Anomalías
 **Responsabilidad única:** ingesta de datos IoT (RF-05), detección de anomalías (RF-06), WebSocket en tiempo real. No incluye registro administrativo de dispositivos (eso es `admin-integracion-service`, M4).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -187,10 +187,10 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/monitoring/alerts/` | GET | Medical/Admin JWT | RF-06 |
 | `ws/monitoring/{patient_id}/` | WebSocket | JWT (query param) | RF-06, RNF-10 |
 
-## 4.2 M2 — Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
+## 4.2 M2 - Módulo de Evaluación y Asignación (CU-002 · RF-08 a RF-12)
 
-### `evaluacion-service` :8005 — Evaluación de Riesgo, Matching y Asignación de Recursos
-**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio: evaluación de riesgo con IA (RF-08), recomendaciones RAG (RF-09), búsqueda de centros disponibles — solo lectura (RF-10), matching (RF-11), asignación de recursos + notificación (RF-12).
+### `evaluacion-service` :8005 - Evaluación de Riesgo, Matching y Asignación de Recursos
+**Responsabilidad única:** todo el ciclo de CU-002 en un solo servicio: evaluación de riesgo con IA (RF-08), recomendaciones RAG (RF-09), búsqueda de centros disponibles - solo lectura (RF-10), matching (RF-11), asignación de recursos + notificación (RF-12).
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -198,25 +198,25 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/evaluacion/centros-disponibles/` | GET | X-Service-Token | RF-10 |
 | `/api/evaluacion/matching/{evaluacion_id}/` | POST | Medical/Admin JWT | RF-11, RF-12 |
 
-## 4.3 M3 — Módulo de Atención (CU-003 · RF-13 a RF-15)
+## 4.3 M3 - Módulo de Atención (CU-003 · RF-13 a RF-15)
 
-### `teleconsult-service` :8006 — Teleconsulta con Señalización WebRTC
-**Responsabilidad única:** sesión de teleconsulta (RF-13) — creación de sala, señalización WebRTC, chat, notas médicas.
+### `teleconsult-service` :8006 - Teleconsulta con Señalización WebRTC
+**Responsabilidad única:** sesión de teleconsulta (RF-13) - creación de sala, señalización WebRTC, chat, notas médicas.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
 | `/api/teleconsult/` | POST | Medical/Admin JWT | RF-13 |
 | `ws/teleconsult/{room_token}/` | WebSocket (señalización SDP/ICE) | JWT (query param) | RF-13 |
 
-### `emergency-service` :8007 — Gestión de Emergencias Médicas
-**Responsabilidad única:** exclusivamente RF-14 — protocolo de emergencias, guía de primeros auxilios, despacho de ambulancia. Ya no hace matching (eso es M2) ni valida solicitudes (eso es M1).
+### `emergency-service` :8007 - Gestión de Emergencias Médicas
+**Responsabilidad única:** exclusivamente RF-14 - protocolo de emergencias, guía de primeros auxilios, despacho de ambulancia. Ya no hace matching (eso es M2) ni valida solicitudes (eso es M1).
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
 | `/api/emergencies/` | POST/GET | JWT | RF-14 |
 | `/api/emergencies/{id}/dispatch/` | POST | Admin/Medical JWT | RF-14 |
 
-### `cierre-caso-service` :8008 — Actualización de Historial y Cierre del Caso
+### `cierre-caso-service` :8008 - Actualización de Historial y Cierre del Caso
 **Responsabilidad única:** actualización del historial clínico durante la atención y cierre operativo del caso (RF-15), verificación de integridad antes de cerrar (RNF-28).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -224,9 +224,9 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/cierre-caso/{id}/close/` | POST | Medical JWT | RF-15, RNF-28 |
 | `/api/cierre-caso/{id}/verify/` | GET | Medical/Admin JWT | RNF-28 |
 
-## 4.4 M4 — Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
+## 4.4 M4 - Módulo de Integración e Interoperabilidad Clínica (CU-004 · RF-16 a RF-20)
 
-### `historial-interop-service` :8009 — Historial Clínico Consolidado e Interoperabilidad FHIR
+### `historial-interop-service` :8009 - Historial Clínico Consolidado e Interoperabilidad FHIR
 **Responsabilidad única:** expediente clínico consolidado por paciente (RF-16) y exposición en formato FHIR R4 a MSP/IESS/Consorcio (RF-17).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -234,7 +234,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/historial/{patient_id}/` | GET | Medical/Patient JWT | RF-16 |
 | `/api/history/fhir/{patient_id}/` | GET | Medical/Patient JWT + consentimiento | RF-17, RNF-32, RNF-34 |
 
-### `audit-service` :8010 — Auditoría Inmutable y Auditoría DPD
+### `audit-service` :8010 - Auditoría Inmutable y Auditoría DPD
 **Responsabilidad única:** registro append-only de decisiones de IA (RF-18) y auditoría DPD (RF-20).
 
 | Endpoint | Método | Auth | RF/RNF |
@@ -242,8 +242,8 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 | `/api/audit/decisions/` | GET | JWT rol `dpd_delegate` | RF-20, RNF-38 |
 | `/api/audit/decisions/{audit_log_id}/review/` | PATCH | JWT rol `dpd_delegate` | RF-20 |
 
-### `admin-integracion-service` :8011 — Administración del Sistema (Centros y Dispositivos)
-**Responsabilidad única:** RF-19 completo — registro y validación M2M con el Consorcio de nuevos centros médicos, y registro/vinculación de dispositivos IoT.
+### `admin-integracion-service` :8011 - Administración del Sistema (Centros y Dispositivos)
+**Responsabilidad única:** RF-19 completo - registro y validación M2M con el Consorcio de nuevos centros médicos, y registro/vinculación de dispositivos IoT.
 
 | Endpoint | Método | Auth | RF/RNF |
 |---|---|---|---|
@@ -258,7 +258,7 @@ Fuente de verdad: ESP-HS-SAMR v1.0.5 (Historias de Usuario) y el Diagrama de Cla
 **Estructura de carpetas obligatoria:**
 ```
 samr/
-├── frontend/                       ← React SPA — solo conoce la URL del BFF
+├── frontend/                       ← React SPA - solo conoce la URL del BFF
 ├── bff/
 │   └── bff-service/                ← delante del Gateway (ver sección 3)
 ├── nginx/samr.conf                 ← API Gateway (ver sec/security-hardening)
@@ -342,7 +342,7 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL}
       - JWT_PRIVATE_KEY_PATH=/keys/private.pem   # solo este servicio monta la clave privada
     volumes: ["./keys:/keys:ro"]
-  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH — solo public.pem)
+  # (resto de servicios: mismo patrón, sin JWT_PRIVATE_KEY_PATH - solo public.pem)
 
 volumes: [pgdata]
 ```
@@ -360,7 +360,7 @@ volumes: [pgdata]
 10. `frontend/` + `bff/bff-service/`
 
 **Reglas absolutas :**
-1. Ningún servicio importa código de otro servicio — aislamiento total.
+1. Ningún servicio importa código de otro servicio - aislamiento total.
 2. Ningún microservicio implementa RF de más de un módulo (M1–M4).
 3. JWT: solo `auth-service` firma (RS256); los demás solo verifican.
 4. Un schema PostgreSQL por servicio, sin Foreign Keys entre schemas.
@@ -379,97 +379,97 @@ volumes: [pgdata]
 
 # Registro de trabajo de agentes
 
-## 2026-07-20 — Documentación operativa final del backend
+## 2026-07-20 - Documentación operativa final del backend
 
 - Se anexó a `README.md` y `samr/ONBOARDING.md` el arranque automático vigente, la topología de workers/consumidores y las dependencias nuevas (`celery`/`redis`).
 - Se preservaron las secciones preexistentes; la aclaración del backend se añadió al final conforme a la regla de integridad documental.
 
-## 2026-07-20 — Verificación de emisor JWT en BFF
+## 2026-07-20 - Verificación de emisor JWT en BFF
 
 - El BFF ahora valida explícitamente `iss=samr-auth-service`, además de firma RS256, expiración y tipo `access`.
 - Se actualizó el fixture BFF para representar el mismo contrato de token que emite `auth-service`.
 
-## 2026-07-20 — Smoke test HTTPS y BFF
+## 2026-07-20 - Smoke test HTTPS y BFF
 
 - Se verificó registro y login reales a través de Nginx/TLS con el usuario sintético `mvp-smoke@samr.local`; el registro público ignoró escalamiento y creó rol `patient`, y el login emitió access/refresh RS256.
 - El JWT real fue propagado por el BFF al Gateway y produjo las cuatro claves del contrato: `patient`, `evaluacion`, `monitoring`, `atencion`.
 - Para el usuario sin perfil, `patient` devuelve 404; `evaluacion` y `atencion` listas vacías; `monitoring` devuelve 403 porque el único endpoint documentado de alertas exige rol Medical/Admin. No se ampliaron permisos fuera de los documentos.
 - Se reinició Nginx después de recrear contenedores para renovar la resolución DNS de sus upstreams en el smoke test local.
 
-## 2026-07-20 — Smoke test de saga coreografiada
+## 2026-07-20 - Smoke test de saga coreografiada
 
 - Se publicó en el clúster real el evento sintético `solicitud.validada` con ID `7bd0957f-7c36-41ee-aca6-0a72126cc07b`.
 - `evaluacion-service` consumió el evento mediante RabbitMQ, su worker aislado persistió la evaluación de la solicitud sintética `55555555-5555-4555-8555-555555555555` con nivel MVP `medio` y publicó `riesgo.evaluado` y `ai.decision_logged`.
 - `audit-service` consumió y persistió los tres eventos (`solicitud.validada`, `riesgo.evaluado`, `ai.decision_logged`), comprobando la comunicación entre M1, M2 y M4.
 - No se activó emergencia porque la regla simulada no clasificó el caso como `critico`; no se modificaron umbrales clínicos para forzar el resultado.
 
-## 2026-07-20 — Aplicación Celery activa en procesos Django
+## 2026-07-20 - Aplicación Celery activa en procesos Django
 
 - La prueba de saga confirmó que los eventos llegaban a RabbitMQ, pero los consumidores usaban la aplicación Celery global al invocar `.delay()` y agotaban tres reintentos hacia la DLQ.
 - Los seis servicios asíncronos exponen ahora `celery_app` desde `config/__init__.py`, por lo que vistas, comandos y consumidores usan el broker y la cola aislada definidos por su servicio.
 
-## 2026-07-20 — Registro de tareas y recursos Celery del MVP
+## 2026-07-20 - Registro de tareas y recursos Celery del MVP
 
 - Se registraron explícitamente los módulos de tareas de los seis workers; la autodetección genérica no importaba archivos con nombres de dominio como `procesar_solicitud.py`.
 - Se fijó concurrencia 1 por worker para el entorno MVP local, reduciendo el consumo de procesos sin cambiar la separación de colas ni impedir escalar el valor en despliegues futuros.
 - Se verificaron los nombres exportados de cada tarea, incluido `validate_with_consortium` para la simulación M2M.
 - La verificación de clúster ajustó el registro a `app.conf.imports`: Celery importa cada módulo después de `django.setup()`, evitando `AppRegistryNotReady` en tareas que usan modelos.
 
-## 2026-07-20 — Confirmación correcta de publicación RabbitMQ
+## 2026-07-20 - Confirmación correcta de publicación RabbitMQ
 
 - La prueba de saga real detectó y corrigió una interpretación incorrecta del retorno de `BlockingChannel.basic_publish`.
 - Con publisher confirms activo, Pika comunica NACK o mensaje no enrutable mediante excepción; ya no se trata el retorno `None` de un ACK válido como error.
 - La corrección se replicó en las 11 copias aisladas del publicador y en la referencia de `shared/events`.
 
-## 2026-07-20 — Aislamiento de colas Celery
+## 2026-07-20 - Aislamiento de colas Celery
 
 - Se asignó una cola, exchange y routing key Celery propios a solicitud, evaluación, historial, auditoría, administración y notificaciones.
 - Esto impide que un worker consuma o descarte tareas pertenecientes a otro microservicio mientras todos comparten RabbitMQ como broker único.
 - Se sincronizó el catálogo configurado de eventos de notificación con los bindings realmente consumidos por el MVP.
 
-## 2026-07-20 — Inicialización ASGI para WebSocket
+## 2026-07-20 - Inicialización ASGI para WebSocket
 
 - Se corrigió el orden de arranque ASGI de `monitoring-service` y `teleconsult-service`: Django carga sus settings y registro de aplicaciones antes de importar consumidores que usan modelos.
 - La corrección elimina el ciclo de reinicio observado al validar teleconsulta en el clúster real.
 
-## 2026-07-20 — Cola y DLQ de notificaciones
+## 2026-07-20 - Cola y DLQ de notificaciones
 
 - El consumidor de notificaciones ahora valida el sobre v1.0 y declara su exchange, cola quorum, límite de tres entregas y DLQ aislada de forma idempotente.
 - Esta declaración automática permite levantar el MVP desde cero sin depender de una ejecución manual previa del script RabbitMQ.
 
-## 2026-07-20 — Arranque reproducible de PostgreSQL y migraciones
+## 2026-07-20 - Arranque reproducible de PostgreSQL y migraciones
 
 - Se convirtió `scripts/init-db.sh` en un inicializador idempotente compatible con `/docker-entrypoint-initdb.d`, que crea exactamente las 11 bases documentadas.
 - PostgreSQL monta el inicializador en Docker Compose y cada API persistente aplica sus migraciones antes de iniciar Daphne/Gunicorn, reintentando mientras la base termina de arrancar.
 - Los procesos Django usan `restart: on-failure` para recuperarse de carreras de arranque de PostgreSQL o RabbitMQ sin introducir otro orquestador.
 
-## 2026-07-20 — Corrección del adaptador de notificaciones MVP
+## 2026-07-20 - Corrección del adaptador de notificaciones MVP
 
 - El adaptador de notificaciones lee `MVP_NOTIFICATION_BACKEND` directamente del entorno para poder ejecutarse tanto dentro de Celery/Django como en pruebas unitarias aisladas.
 - Se mantiene `log` como único backend simulado permitido; cualquier valor no configurado falla explícitamente y no simula un envío real.
 
-## 2026-07-20 — Procesos asíncronos del MVP
+## 2026-07-20 - Procesos asíncronos del MVP
 
 - Se declararon en Docker Compose los consumidores RabbitMQ separados de los servidores HTTP para M1, M2, M3, M4 y notificaciones.
 - Se declararon workers Celery separados para validación de solicitudes, evaluación, consolidación FHIR, auditoría y validación de centros; RabbitMQ continúa siendo el único broker.
 - Se completó la configuración Celery de `admin-integracion-service` con serialización JSON y confirmación tardía de tareas.
 
-## 2026-07-20 — Trazabilidad HTTP y validación de contenido
+## 2026-07-20 - Trazabilidad HTTP y validación de contenido
 
 - Se activó en los 12 servicios Django el middleware común que propaga o genera `X-Request-ID`.
 - Las operaciones con cuerpo rechazan tipos distintos de `application/json` y `application/fhir+json` con HTTP 415, de acuerdo con el contrato HTTP del backend.
 
-## 2026-07-20 — Contratos versionados del bus de eventos
+## 2026-07-20 - Contratos versionados del bus de eventos
 
 - Se creó `samr/event-schemas/` con el sobre común v1.0 y un JSON Schema por cada routing key publicada por el MVP.
 - Los contratos fijan identificadores, tipo, origen, fecha, versión y campos mínimos del payload sin acoplar los servicios entre sí.
 
-## 2026-07-20 — Worker de validación externa MVP
+## 2026-07-20 - Worker de validación externa MVP
 
 - Se añadió la configuración Celery de `admin-integracion-service` para ejecutar de forma asíncrona el adaptador simulado de validación de centros médicos.
 - El adaptador permanece desacoplado por variable de entorno para que la simulación del Consorcio pueda sustituirse posteriormente por una integración real sin cambiar el contrato del endpoint.
 
-## 2026-07-19 — Preparación del ambiente local (`logic/core-services`)
+## 2026-07-19 - Preparación del ambiente local (`logic/core-services`)
 
 - Se verificó que la rama activa es `logic/core-services` y que el árbol de trabajo estaba limpio al iniciar.
 - Se instaló Docker Desktop 4.82.0 (Docker Engine CLI 29.6.1 y Docker Compose v5.3.0).
@@ -491,7 +491,7 @@ volumes: [pgdata]
 - Se ejecutaron las 13 suites dentro de Docker: 51 pruebas superadas. También se verificaron los 17 contenedores activos, los 12 servicios de aplicación saludables, las 11 bases PostgreSQL, el BFF (HTTP 200), la redirección HTTP→HTTPS, el Gateway (HTTP 401 esperado sin JWT) y RabbitMQ/exchange `samr.events` (HTTP 200).
 - No se modificaron modelos, flujos de negocio ni contratos de la arquitectura.
 
-## 2026-07-20 — Infraestructura compartida del backend MVP (`logic/core-services`)
+## 2026-07-20 - Infraestructura compartida del backend MVP (`logic/core-services`)
 
 - Se normalizó el envelope v1.0 del publicador RabbitMQ, incluyendo serialización segura de UUID, Decimal y fechas, mensajes persistentes y confirmación de publicación.
 - Se corrigió el consumidor compartido para invocar el contrato documentado `callback(event_type, payload)` y validar los campos obligatorios del envelope.

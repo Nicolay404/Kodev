@@ -374,7 +374,7 @@ Retroalimentación al sistema
 
 ---  
   
-# Macro Cadena Principal de Valor — SAMR
+# Macro Cadena Principal de Valor - SAMR
 ## Vista Global Simplificada de la Macro Cadena
 
 ```text

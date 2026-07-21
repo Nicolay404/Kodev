@@ -1,5 +1,5 @@
-# 07 — Responsive Design
-## SAMR — Sistema de Atención Médica Remota
+# 07 - Responsive Design
+## SAMR - Sistema de Atención Médica Remota
 
 > Enfoque **mobile-first** para todo lo dirigido a Paciente/Familiar/Paramédico (dispositivo dominante: smartphone, a menudo bajo estrés o en campo) y **desktop-first con degradación mobile funcional** (no solo visual) para lo dirigido a Profesional/Admin/DPD (dispositivo dominante: laptop/desktop, pero deben poder operar de emergencia desde un celular).
 
@@ -43,7 +43,7 @@
 
 ## 7.5 Tablas
 
-Regla explícita (ver doc 06.20): **por debajo de `md` (768px), toda tabla se transforma en una lista de Cards apiladas**, una por fila original, mostrando las 2–3 columnas más relevantes como texto principal/secundario dentro de la card y el resto tras un "Ver más" o dentro del detalle. Nunca scroll horizontal como solución por defecto — el scroll horizontal solo se acepta como fallback temporal si una tabla es inherentemente ancha (ej. comparativa de muchas especialidades) y aun así debe llevar un indicador visual de que hay más contenido a la derecha.
+Regla explícita (ver doc 06.20): **por debajo de `md` (768px), toda tabla se transforma en una lista de Cards apiladas**, una por fila original, mostrando las 2–3 columnas más relevantes como texto principal/secundario dentro de la card y el resto tras un "Ver más" o dentro del detalle. Nunca scroll horizontal como solución por defecto - el scroll horizontal solo se acepta como fallback temporal si una tabla es inherentemente ancha (ej. comparativa de muchas especialidades) y aun así debe llevar un indicador visual de que hay más contenido a la derecha.
 
 ## 7.6 Formularios
 
@@ -57,7 +57,7 @@ Regla explícita (ver doc 06.20): **por debajo de `md` (768px), toda tabla se tr
 | Breakpoint | Comportamiento |
 |---|---|
 | Mobile | Pantalla completa, input fijo sobre el teclado virtual (usar `env(safe-area-inset-bottom)` en iOS) |
-| Tablet+ | Contenedor centrado `max-width: 720px`, no ocupa todo el ancho — el chat no se beneficia de líneas de texto muy largas |
+| Tablet+ | Contenedor centrado `max-width: 720px`, no ocupa todo el ancho - el chat no se beneficia de líneas de texto muy largas |
 
 ## 7.8 Teleconsulta (P-Sala-Teleconsulta)
 
@@ -69,7 +69,7 @@ Regla explícita (ver doc 06.20): **por debajo de `md` (768px), toda tabla se tr
 
 ## 7.9 Emergencia activa (P-Emergencia-Activa / P-Emergencia-Paramedico)
 
-Diseñada **mobile-first sin excepción** — es la pantalla con mayor probabilidad de usarse en un smartphone bajo estrés. En breakpoints mayores (tablet/desktop, ej. un familiar viéndolo desde una laptop), el layout simplemente centra el mismo contenido en una columna de `max-width: 640px` — **no se agrega información adicional en pantallas grandes**, la simplicidad es intencional en todos los tamaños.
+Diseñada **mobile-first sin excepción** - es la pantalla con mayor probabilidad de usarse en un smartphone bajo estrés. En breakpoints mayores (tablet/desktop, ej. un familiar viéndolo desde una laptop), el layout simplemente centra el mismo contenido en una columna de `max-width: 640px` - **no se agrega información adicional en pantallas grandes**, la simplicidad es intencional en todos los tamaños.
 
 ## 7.10 Modales
 
@@ -80,13 +80,13 @@ Diseñada **mobile-first sin excepción** — es la pantalla con mayor probabili
 
 ## 7.11 Tipografía responsive
 
-La escala tipográfica (doc 05 §5.3) es la misma en todos los breakpoints — **no se reduce el tamaño de fuente en mobile** (error común que perjudica legibilidad justo donde más se necesita). Lo que cambia es el `line-length` (ancho de línea de texto), limitado a `max-width: 65ch` en cualquier breakpoint para mantener legibilidad óptima.
+La escala tipográfica (doc 05 §5.3) es la misma en todos los breakpoints - **no se reduce el tamaño de fuente en mobile** (error común que perjudica legibilidad justo donde más se necesita). Lo que cambia es el `line-length` (ancho de línea de texto), limitado a `max-width: 65ch` en cualquier breakpoint para mantener legibilidad óptima.
 
 ## 7.12 Zonas táctiles vs. cursor
 
-En breakpoints `mobile`/`tablet` (dispositivos táctiles primarios), todo elemento interactivo respeta el mínimo de 44×44px sin excepción (doc 06 §6.1). En `laptop+`, se permite reducir el tamaño visual de elementos secundarios (ej. íconos de acción en tablas densas) a 32×32px con área de clic ampliada invisible, dado que el cursor de mouse tiene mayor precisión — pero **nunca** en pantallas dirigidas a paciente, donde el estándar de 44×44px se mantiene en todos los breakpoints por consistencia con población de baja motricidad.
+En breakpoints `mobile`/`tablet` (dispositivos táctiles primarios), todo elemento interactivo respeta el mínimo de 44×44px sin excepción (doc 06 §6.1). En `laptop+`, se permite reducir el tamaño visual de elementos secundarios (ej. íconos de acción en tablas densas) a 32×32px con área de clic ampliada invisible, dado que el cursor de mouse tiene mayor precisión - pero **nunca** en pantallas dirigidas a paciente, donde el estándar de 44×44px se mantiene en todos los breakpoints por consistencia con población de baja motricidad.
 
-## 7.13 Resumen — tabla maestra por página clave
+## 7.13 Resumen - tabla maestra por página clave
 
 | Página | Mobile | Tablet | Laptop+ |
 |---|---|---|---|
