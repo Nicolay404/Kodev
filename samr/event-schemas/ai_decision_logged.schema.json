@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/ai_decision_logged.schema.json",
+  "title": "ai.decision_logged",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "ai.decision_logged"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "decision_type",
+            "payload",
+            "ai_explainability"
+          ]
+        }
+      }
+    }
+  ]
+}

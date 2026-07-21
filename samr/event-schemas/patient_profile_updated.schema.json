@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/patient_profile_updated.schema.json",
+  "title": "patient.profile_updated",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "patient.profile_updated"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "patient_id",
+            "user_id"
+          ]
+        }
+      }
+    }
+  ]
+}

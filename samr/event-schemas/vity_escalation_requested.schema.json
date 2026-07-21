@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/vity_escalation_requested.schema.json",
+  "title": "vity.escalation_requested",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "vity.escalation_requested"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "evaluacion_id",
+            "solicitud_id",
+            "nivel_riesgo"
+          ]
+        }
+      }
+    }
+  ]
+}

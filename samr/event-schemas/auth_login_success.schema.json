@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/auth_login_success.schema.json",
+  "title": "auth.login_success",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "auth.login_success"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "usuario_id",
+            "email"
+          ]
+        }
+      }
+    }
+  ]
+}

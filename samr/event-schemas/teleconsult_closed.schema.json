@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://samr.local/schemas/teleconsult_closed.schema.json",
+  "title": "teleconsult.closed",
+  "allOf": [
+    {
+      "$ref": "./_envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "teleconsult.closed"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "session_id"
+          ]
+        }
+      }
+    }
+  ]
+}
