@@ -91,7 +91,7 @@ services:
       API_GATEWAY_URL: "https://nginx"
       JWT_PUBLIC_KEY_PATH: "/keys/public.pem"
       VERIFY_GATEWAY_TLS: "false"
-      BFF_ALLOWED_ORIGINS: "http://localhost:3000"
+      BFF_ALLOWED_ORIGINS: "${BFF_ALLOWED_ORIGINS:-http://localhost:5173}"
     volumes:
       - ./keys/public.pem:/keys/public.pem:ro
 

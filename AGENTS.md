@@ -633,3 +633,13 @@ volumes: [pgdata]
 - Se ejecutaron las 13 suites backend en imágenes Docker: **74 pruebas superadas**. Los 22 contratos JSON Schema son válidos, Nginx valida su configuración y los 32 procesos de Compose quedaron saludables.
 - Un smoke test real recorrió registro, consentimiento, solicitud, riesgo, matching, teleconsulta, cierre, historial, notificaciones y BFF; consolidó seis eventos clínicos. Un segundo escenario confirmó que la evaluación se bloquea cuando `consent_ai=false`.
 - Se reconstruyeron también las imágenes de workers y consumidores declaradas mediante `extends`, evitando que Compose reutilice imágenes asíncronas antiguas después de cambios en los servicios base.
+
+## 2026-07-21 — CORS del BFF y salud HTTP de notificaciones
+
+- El BFF acepta por defecto el origen real de Vite `http://localhost:5173`; `BFF_ALLOWED_ORIGINS` conserva soporte para varios orígenes separados por coma y descarta espacios alrededor de cada valor.
+- Los preflight CORS permiten `GET`, `POST`, `PATCH` y `DELETE`, además de los encabezados de autenticación y trazabilidad ya aprobados.
+- `notification-service` comprueba mediante `HEALTHCHECK` su endpoint HTTP `/health` servido por Gunicorn, usando únicamente la biblioteca estándar de Python.
+- Se actualizó el `.env.example` versionado y el `.env` local ignorado por Git sin modificar el frontend.
+- `docker-compose.yml` dejó de sobrescribir el origen con el puerto histórico `3000` y ahora propaga `BFF_ALLOWED_ORIGINS`, con fallback coherente a Vite `5173`.
+- El entorno se verificó con frontend HTTP 200, BFF HTTP 200, preflight real desde Vite HTTP 200 y `notification-service` saludable.
+- Vite se levantó en un contenedor Node aislado con el repositorio montado en solo lectura; como el `package-lock.json` fusionado no admite `npm ci`, la resolución con `npm install` permanece únicamente dentro del contenedor y no modifica el frontend.
