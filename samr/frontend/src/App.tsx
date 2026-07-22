@@ -4,10 +4,24 @@ import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Login } from './features/auth/Login';
+import { Register } from './features/auth/Register';
+import { ForgotPassword } from './features/auth/ForgotPassword';
 import { Dashboard } from './features/dashboard/Dashboard';
-import { PatientList } from './features/patient/PatientList';
+import { AlertsList } from './features/monitoring/AlertsList';
 import { TeleconsultRoom } from './features/teleconsult/TeleconsultRoom';
 import { MonitoringView } from './features/monitoring/MonitoringView';
+import { EmergenciesList } from './features/emergency/EmergenciesList';
+import { NotificationsList } from './features/notifications/NotificationsList';
+import { AdminPanel } from './features/admin/AdminPanel';
+import { AuditLogList } from './features/audit/AuditLogList';
+import { Chatbot } from './features/chat/Chatbot';
+import { HistorialClinico } from './features/historial/HistorialClinico';
+import { CierreCasoList } from './features/cierre/CierreCasoList';
+import { Perfil } from './features/profile/Perfil';
+
+const CLINICAL_ROLES = ['professional', 'nurse', 'center_admin', 'system_admin'] as const;
+const TELECONSULT_ROLES = ['professional', 'center_admin', 'system_admin'] as const;
+const PATIENT_AND_CLINICAL_ROLES = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'] as const;
 
 function Unauthorized() {
   return (
@@ -25,11 +39,13 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Protected Routes */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <ProtectedRoute>
                 <MainLayout />
@@ -37,21 +53,100 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="patients" element={<PatientList />} />
-            <Route path="teleconsult" element={<TeleconsultRoom />} />
-            <Route path="monitoring" element={<MonitoringView />} />
+            <Route path="profile" element={<Perfil />} />
+            <Route path="notifications" element={<NotificationsList />} />
+            <Route
+              path="help"
+              element={
+                <ProtectedRoute allowedRoles={['patient']}>
+                  <Chatbot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="emergencies"
+              element={
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                  <EmergenciesList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="historial"
+              element={
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                  <HistorialClinico />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="historial/:patientId"
+              element={
+                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                  <HistorialClinico />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="cierre-casos"
+              element={
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                  <CierreCasoList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="monitoring"
+              element={
+                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                  <AlertsList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="monitoring/:patientId"
+              element={
+                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                  <MonitoringView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teleconsult"
+              element={
+                <ProtectedRoute allowedRoles={[...TELECONSULT_ROLES]}>
+                  <TeleconsultRoom />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute allowedRoles={['system_admin']}>
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="audit"
+              element={
+                <ProtectedRoute allowedRoles={['dpd_delegate']}>
+                  <AuditLogList />
+                </ProtectedRoute>
+              }
+            />
           </Route>
-          
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-      <Toaster 
-        position="top-right" 
+      <Toaster
+        position="top-right"
         toastOptions={{
           duration: 5000,
           className: 'text-sm font-medium',
-        }} 
+        }}
       />
     </ErrorBoundary>
   );
