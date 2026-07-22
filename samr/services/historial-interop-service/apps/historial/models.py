@@ -7,3 +7,6 @@ class Historial(models.Model):
     patient_id = models.UUIDField(unique=True)
     eventos = models.JSONField(default=list)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "expedientes_consolidados"

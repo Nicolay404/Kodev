@@ -12,3 +12,6 @@ class Caso(models.Model):
     integrity_hash = models.CharField(max_length=64, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
     closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "clinical_cases"

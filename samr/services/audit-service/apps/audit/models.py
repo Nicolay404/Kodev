@@ -20,6 +20,9 @@ class AuditLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     objects = AppendOnlyQuerySet.as_manager()
 
+    class Meta:
+        db_table = "audit_log"
+
     def save(self, *args, **kwargs):
         if self.pk and AuditLog.objects.filter(pk=self.pk).exists(): raise ValueError("audit_log es append-only")
         return super().save(*args, **kwargs)
@@ -37,3 +40,6 @@ class AuditReview(models.Model):
     comentario = models.TextField(null=True, blank=True)
     fecha_revision = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "audit_reviews"

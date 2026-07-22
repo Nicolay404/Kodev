@@ -17,3 +17,6 @@ class TeleconsultSession(models.Model):
     ai_recommendation = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "teleconsults"

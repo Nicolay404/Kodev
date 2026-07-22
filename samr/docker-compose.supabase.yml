@@ -1,0 +1,187 @@
+x-supabase-db-environment: &supabase-db-environment
+  DB_HOST: ${DB_HOST:?DB_HOST is required}
+  POSTGRES_HOST: ${DB_HOST:?DB_HOST is required}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_NAME: ${DB_NAME:-postgres}
+  DB_USER: ${DB_USER:?DB_USER is required}
+  DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+  DB_SSLMODE: require
+  DB_SCHEMA_MODE: schema
+
+networks:
+  samr-net:
+    enable_ipv6: true
+
+services:
+  supabase-init:
+    image: postgres:16
+    networks:
+      - samr-net
+    environment:
+      PGHOST: ${DB_HOST:?DB_HOST is required}
+      PGPORT: ${DB_PORT:-5432}
+      PGDATABASE: ${DB_NAME:-postgres}
+      PGUSER: ${DB_USER:?DB_USER is required}
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      PGSSLMODE: require
+    volumes:
+      - ./scripts/init-supabase.sql:/scripts/init-supabase.sql:ro
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-f", "/scripts/init-supabase.sql"]
+    restart: "no"
+
+  bff-service:
+    environment:
+      BFF_ALLOWED_ORIGINS: http://localhost:5173
+
+  auth-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: auth_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  patient-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: patient_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  solicitud-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: solicitud_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  monitoring-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: monitoring_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  evaluacion-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: evaluacion_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  teleconsult-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: teleconsult_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  emergency-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: emergency_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  cierre-caso-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: cierre_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  historial-interop-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: historial_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  audit-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: audit_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  admin-integracion-service:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: admin_db
+    depends_on:
+      supabase-init:
+        condition: service_completed_successfully
+
+  solicitud-worker:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: solicitud_db
+
+  solicitud-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: solicitud_db
+
+  monitoring-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: monitoring_db
+
+  evaluacion-worker:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: evaluacion_db
+
+  evaluacion-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: evaluacion_db
+
+  teleconsult-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: teleconsult_db
+
+  emergency-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: emergency_db
+
+  cierre-caso-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: cierre_db
+
+  historial-worker:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: historial_db
+
+  historial-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: historial_db
+
+  audit-worker:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: audit_db
+
+  audit-consumer:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: audit_db
+
+  admin-integracion-worker:
+    environment:
+      <<: *supabase-db-environment
+      DB_SCHEMA: admin_db

@@ -75,7 +75,7 @@ class LoginView(APIView):
 
         user.failed_attempts = 0
         user.locked_until = None
-        user.save(update_fields=["failed_attempts", "locked_until", "last_login"])
+        user.save(update_fields=["failed_attempts", "locked_until"])
         tokens = generar_jwt_pair(user)
         publicar_evento(
             "auth.login_success", {"usuario_id": str(user.id), "email": user.email}

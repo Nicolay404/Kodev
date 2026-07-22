@@ -26,6 +26,8 @@ class User(AbstractBaseUser):
         ("dpd_delegate", "DPD Delegate"),
     )
 
+    password = models.CharField(max_length=255, db_column="password_hash")
+    last_login = None
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default="patient")
@@ -35,6 +37,9 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
     USERNAME_FIELD = "email"
+
+    class Meta:
+        db_table = "auth_user"
 
     @property
     def rol(self):

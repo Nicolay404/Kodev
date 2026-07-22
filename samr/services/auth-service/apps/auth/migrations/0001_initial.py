@@ -10,8 +10,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="User",
             fields=[
-                ("password", models.CharField(max_length=128, verbose_name="password")),
-                ("last_login", models.DateTimeField(blank=True, null=True, verbose_name="last login")),
+                ("password", models.CharField(db_column="password_hash", max_length=255)),
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ("email", models.EmailField(max_length=254, unique=True)),
                 ("role", models.CharField(choices=[("patient", "Patient"), ("professional", "Professional"), ("nurse", "Nurse/Paramedic"), ("center_admin", "Center Admin"), ("system_admin", "System Admin"), ("dpd_delegate", "DPD Delegate")], default="patient", max_length=50)),
@@ -19,6 +18,6 @@ class Migration(migrations.Migration):
                 ("locked_until", models.DateTimeField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
-            options={"abstract": False},
+            options={"abstract": False, "db_table": "auth_user"},
         )
     ]

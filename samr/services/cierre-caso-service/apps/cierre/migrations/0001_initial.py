@@ -12,4 +12,4 @@ class Migration(migrations.Migration):
         ("integrity_hash", models.CharField(blank=True, max_length=64)),
         ("status", models.CharField(choices=[("open", "Open"), ("closed", "Closed")], default="open", max_length=20)),
         ("closed_at", models.DateTimeField(blank=True, null=True)),
-    ])]
+    ], options={"db_table": "clinical_cases"})]

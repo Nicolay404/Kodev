@@ -10,9 +10,15 @@ class Emergency(models.Model):
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "emergency_cases"
+
 
 class FirstAidGuide(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     emergency = models.ForeignKey(Emergency, related_name="guides", on_delete=models.CASCADE)
     contenido = models.TextField()
     fecha_generacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "guias_primeros_auxilios"
