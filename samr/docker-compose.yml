@@ -108,6 +108,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY_PATH: /keys/private.pem
       AUTH_LOCK_MINUTES: ${AUTH_LOCK_MINUTES}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,auth-service
     volumes:
       - ./keys:/keys:ro
 
@@ -123,6 +125,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
       REDIS_URL: ${REDIS_URL}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,notification-service
 
   notification-worker:
     <<: *django-service
@@ -133,6 +137,8 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
       REDIS_URL: ${REDIS_URL}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,notification-service
 
   notification-consumer:
     <<: *django-service
@@ -147,6 +153,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
       REDIS_URL: ${REDIS_URL}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,notification-service
 
   patient-service:
     <<: *django-service
@@ -160,6 +168,8 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       PATIENT_DATA_KEY: ${PATIENT_DATA_KEY}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,patient-service
 
   solicitud-service:
     <<: *django-service
@@ -175,6 +185,8 @@ services:
       REDIS_URL: ${REDIS_URL}
       MVP_FAQ_CONFIDENCE_THRESHOLD: ${MVP_FAQ_CONFIDENCE_THRESHOLD}
       MVP_CONSORTIUM_OUTCOME: ${MVP_CONSORTIUM_OUTCOME}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,solicitud-service
 
   monitoring-service:
     <<: *django-service
@@ -190,6 +202,8 @@ services:
       REDIS_URL: ${REDIS_URL}
       MVP_DEVICE_SERVICE_TOKEN: ${MVP_DEVICE_SERVICE_TOKEN}
       MVP_VITAL_THRESHOLDS: ${MVP_VITAL_THRESHOLDS}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,monitoring-service
 
   evaluacion-service:
     <<: *django-service
@@ -206,6 +220,8 @@ services:
       MVP_CRITICAL_TERMS: ${MVP_CRITICAL_TERMS}
       MVP_HIGH_TERMS: ${MVP_HIGH_TERMS}
       PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,evaluacion-service
 
   teleconsult-service:
     <<: *django-service
@@ -218,6 +234,8 @@ services:
       DB_NAME: teleconsult_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,teleconsult-service
 
   emergency-service:
     <<: *django-service
@@ -231,6 +249,8 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_FIRST_AID_GUIDE: ${MVP_FIRST_AID_GUIDE}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,emergency-service
 
   cierre-caso-service:
     <<: *django-service
@@ -243,6 +263,8 @@ services:
       DB_NAME: cierre_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,cierre-caso-service
 
   historial-interop-service:
     <<: *django-service
@@ -257,6 +279,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_URL: ${REDIS_URL}
       PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,historial-interop-service
 
   audit-service:
     <<: *django-service
@@ -269,6 +293,8 @@ services:
       DB_NAME: audit_db
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,audit-service
 
   admin-integracion-service:
     <<: *django-service
@@ -282,6 +308,8 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_CENTER_VALIDATION_OUTCOME: ${MVP_CENTER_VALIDATION_OUTCOME}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      ALLOWED_HOST: localhost,nginx,admin-integracion-service
 
   solicitud-worker:
     extends:
