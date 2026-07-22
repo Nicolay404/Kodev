@@ -61,5 +61,6 @@ async def test_dashboard_patient(auth_jwt_patient):
         with patch('main.http_client.get', return_value=MockResponse({"mock": "data"}, 200)) as mock_get:
             response = client.get("/dashboard/", headers={"Authorization": f"Bearer {auth_jwt_patient}"})
     assert response.status_code == 200
-    assert set(response.json()) == {'patient', 'evaluacion', 'monitoring', 'atencion'}
+    assert set(response.json()) == {'role', 'patient', 'solicitudes', 'monitoring', 'atencion', 'emergencias', 'teleconsultas', 'notificaciones'}
+    assert response.json()['role'] == 'patient'
     assert response.json()['patient'] == {"mock": "data"}

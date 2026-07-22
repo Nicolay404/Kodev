@@ -16,7 +16,7 @@ def verify_jwt(token):
         raise AuthenticationFailed(f"Llave pública no encontrada en {settings.JWT_PUBLIC_KEY_PATH}")
         
     try:
-        payload = jwt.decode(token, public_key, algorithms=['RS256'])
+        payload = jwt.decode(token, public_key, algorithms=['RS256'], issuer="samr-auth-service")
         return payload
     except jwt.ExpiredSignatureError:
         raise AuthenticationFailed("Token expirado")

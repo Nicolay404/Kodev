@@ -5,10 +5,13 @@ import os
 
 from celery import shared_task
 
+from apps.notifications.inbox import get_inbox
+
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EVENTS = {
     "auth.account_locked",
+    "auth.password_reset_requested",
     "vitals.critical_detected",
     "vity.escalation_requested",
     "recursos.asignados",
@@ -23,7 +26,8 @@ SUPPORTED_EVENTS = {
 class MVPLogNotificationAdapter:
     def send(self, event_type, payload):
         logger.info("MVP_NOTIFICATION event=%s payload=%s", event_type, payload)
-        return {"status": "simulated", "event_type": event_type}
+        _, recipients = get_inbox().store(event_type, payload)
+        return {"status": "simulated", "event_type": event_type, "stored_for": recipients}
 
 
 @shared_task

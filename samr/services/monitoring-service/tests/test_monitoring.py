@@ -1,9 +1,11 @@
 from unittest.mock import AsyncMock, patch
+import uuid
 import pytest
 from django.conf import settings
 from django.urls import reverse
 from apps.monitoring.models import Alert, VitalSign
 from apps.monitoring.services import register_device
+from consumers.monitoring_consumer import MonitoringConsumer
 
 
 @pytest.mark.django_db
@@ -38,3 +40,22 @@ class TestMonitoringAPI:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth_jwt}")
         response = api_client.get(reverse("alerts"))
         assert response.status_code == 200 and len(response.data) == 1
+
+    def test_patient_reads_only_own_alerts_and_vital_signs(self, api_client, patient_jwt, patient_id, device_id):
+        Alert.objects.create(patient_id=patient_id, severity="critical")
+        Alert.objects.create(patient_id=uuid.uuid4(), severity="high")
+        VitalSign.objects.create(patient_id=patient_id, device_id=device_id, value={"resourceType": "Observation", "measurements": {"heart_rate": 80}})
+        VitalSign.objects.create(patient_id=uuid.uuid4(), device_id=uuid.uuid4(), value={"resourceType": "Observation", "measurements": {"heart_rate": 90}})
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+
+        alerts = api_client.get(reverse("alerts"))
+        readings = api_client.get(reverse("vital_signs"))
+
+        assert alerts.status_code == 200 and len(alerts.data) == 1
+        assert readings.status_code == 200 and len(readings.data) == 1
+        assert readings.data[0]["patient_id"] == str(patient_id)
+
+    def test_websocket_scope_allows_patient_only_for_self(self, patient_id):
+        own_payload = {"rol": "patient", "usuario_id": str(patient_id)}
+        assert MonitoringConsumer.can_monitor(own_payload, patient_id) is True
+        assert MonitoringConsumer.can_monitor(own_payload, uuid.uuid4()) is False

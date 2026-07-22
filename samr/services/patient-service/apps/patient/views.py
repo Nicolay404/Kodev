@@ -28,7 +28,10 @@ class PatientMeView(APIView):
         creating = patient is None
         serializer = PatientSerializer(patient, data=request.data, partial=not creating)
         serializer.is_valid(raise_exception=True)
-        patient = serializer.save(user_id=request.user.id)
+        save_fields = {"user_id": request.user.id}
+        if creating:
+            save_fields["id"] = request.user.id
+        patient = serializer.save(**save_fields)
         publicar_evento("patient.profile_updated", {"patient_id": str(patient.id), "user_id": str(request.user.id)})
         return Response(PatientSerializer(patient).data, status=status.HTTP_201_CREATED if creating else status.HTTP_200_OK)
 

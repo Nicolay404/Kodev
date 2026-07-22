@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import uuid
 import pytest
 from django.test import override_settings
 from django.urls import reverse
@@ -46,6 +47,22 @@ class TestSolicitudAPI:
         assert response.status_code == 201
         assert Solicitud.objects.get().estado == "pendiente"
         mock_task.assert_called_once()
+
+    def test_list_and_detail_only_include_owner(self, api_client, patient_jwt, patient_id):
+        own = Solicitud.objects.create(patient_id=patient_id, sintomas=["dolor"])
+        Solicitud.objects.create(patient_id=uuid.uuid4(), sintomas=["fiebre"])
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+
+        listed = api_client.get(reverse("solicitud_create"))
+        detail = api_client.get(reverse("solicitud_detail", kwargs={"id": own.id}))
+
+        assert listed.status_code == 200 and [item["id"] for item in listed.data] == [str(own.id)]
+        assert detail.status_code == 200 and detail.data["id"] == str(own.id)
+
+    def test_detail_hides_another_patients_request(self, api_client, patient_jwt):
+        solicitud = Solicitud.objects.create(patient_id=uuid.uuid4(), sintomas=["dolor"])
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {patient_jwt}")
+        assert api_client.get(reverse("solicitud_detail", kwargs={"id": solicitud.id})).status_code == 404
 
     @patch("tasks.validate_with_consortium.publicar_evento")
     @override_settings(MVP_CONSORTIUM_OUTCOME="validated")

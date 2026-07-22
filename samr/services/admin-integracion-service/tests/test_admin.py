@@ -25,3 +25,20 @@ class TestAdminAPI:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth_jwt_sysadmin}")
         response = api_client.post(reverse("device_register"), {"patient_id": str(uuid.uuid4()), "device_type": "oximeter", "serial_number": "SER-001"}, format="json")
         assert response.status_code == 201 and Device.objects.count() == 1
+
+    def test_system_admin_lists_center_states(self, api_client, auth_jwt_sysadmin):
+        pending = Center.objects.create(name="Pendiente")
+        Center.objects.create(name="Validado", status="validated")
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth_jwt_sysadmin}")
+        response = api_client.get(reverse("center_list"), {"status": "pending_validation"})
+        detail = api_client.get(reverse("center_detail", kwargs={"center_id": pending.id}))
+        assert response.status_code == 200 and len(response.data) == 1
+        assert detail.status_code == 200 and detail.data["status"] == "pending_validation"
+
+    def test_patient_lists_only_own_devices(self, api_client, auth_jwt_patient, patient_id):
+        own = Device.objects.create(patient_id=patient_id, device_type="oximeter", registered_by=uuid.uuid4())
+        hidden = Device.objects.create(patient_id=uuid.uuid4(), device_type="watch", registered_by=uuid.uuid4())
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth_jwt_patient}")
+        response = api_client.get(reverse("device_list"))
+        assert response.status_code == 200 and [item["id"] for item in response.data] == [str(own.id)]
+        assert api_client.get(reverse("device_detail", kwargs={"device_id": hidden.id})).status_code == 403

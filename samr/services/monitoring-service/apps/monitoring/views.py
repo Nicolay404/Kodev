@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from events.publisher import publicar_evento
-from .models import Alert
+from .models import Alert, VitalSign
 from .permissions import DeviceTokenAuthentication, JWTAuthentication
 from .serializers import AlertSerializer, VitalSignSerializer
 from .services import cache_reading, detect_anomalies, is_device_registered
@@ -38,6 +38,27 @@ class AlertView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if request.user.rol not in {"professional", "nurse", "center_admin", "system_admin"}:
+        if request.user.rol == "patient":
+            alerts = Alert.objects.filter(patient_id=request.user.id)
+        elif request.user.rol in {"professional", "nurse", "center_admin", "system_admin"}:
+            alerts = Alert.objects.all()
+        else:
             return Response({"error": "Permiso denegado"}, status=403)
-        return Response(AlertSerializer(Alert.objects.order_by("-created_at")[:50], many=True).data)
+        return Response(AlertSerializer(alerts.order_by("-created_at")[:50], many=True).data)
+
+
+class VitalSignView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        readings = VitalSign.objects.all()
+        if request.user.rol == "patient":
+            readings = readings.filter(patient_id=request.user.id)
+        elif request.user.rol in {"professional", "nurse", "center_admin", "system_admin"}:
+            patient_id = request.query_params.get("patient_id")
+            if patient_id:
+                readings = readings.filter(patient_id=patient_id)
+        else:
+            return Response({"error": "Permiso denegado"}, status=403)
+        return Response(VitalSignSerializer(readings.order_by("-recorded_at")[:100], many=True).data)

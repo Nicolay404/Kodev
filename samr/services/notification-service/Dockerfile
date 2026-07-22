@@ -16,4 +16,5 @@ ENV PYTHONUNBUFFERED=1
 COPY . .
 RUN chown -R samr:samr /app
 USER samr
-CMD ["celery", "-A", "config", "worker", "-l", "info", "--concurrency=1"]
+EXPOSE 8012
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8012", "--workers", "2", "--timeout", "30"]

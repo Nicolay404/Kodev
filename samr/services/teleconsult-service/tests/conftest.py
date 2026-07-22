@@ -36,6 +36,7 @@ def _create_jwt(private_key, rol, user_id=None):
         'email': f'{rol}@test.com',
         'rol': rol,
         'type': 'access',
+        'iss': 'samr-auth-service',
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
     }
     return jwt.encode(payload, private_key, algorithm='RS256')
@@ -43,3 +44,19 @@ def _create_jwt(private_key, rol, user_id=None):
 @pytest.fixture
 def auth_jwt_medical(rsa_keys):
     return _create_jwt(rsa_keys[0], 'professional')
+
+@pytest.fixture
+def professional_id():
+    return uuid.uuid4()
+
+@pytest.fixture
+def patient_id():
+    return uuid.uuid4()
+
+@pytest.fixture
+def professional_jwt(rsa_keys, professional_id):
+    return _create_jwt(rsa_keys[0], 'professional', professional_id)
+
+@pytest.fixture
+def patient_jwt(rsa_keys, patient_id):
+    return _create_jwt(rsa_keys[0], 'patient', patient_id)

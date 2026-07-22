@@ -43,3 +43,18 @@ class EmergencyDispatchView(APIView):
         emergency.status = "dispatched"; emergency.save(update_fields=["status"])
         publicar_evento("emergency.dispatched", {"emergency_id": str(emergency.id), "patient_id": str(emergency.patient_id), "triage_level": emergency.triage_level})
         return Response(EmergencySerializer(emergency).data)
+
+
+class EmergencyDetailView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, emergency_id):
+        emergency = Emergency.objects.filter(id=emergency_id).first()
+        if not emergency:
+            return Response({"error": "Emergencia no encontrada"}, status=404)
+        if request.user.rol == "patient" and str(emergency.patient_id) != str(request.user.id):
+            return Response({"error": "Permiso denegado"}, status=403)
+        if request.user.rol not in {"patient", "professional", "nurse", "center_admin", "system_admin"}:
+            return Response({"error": "Permiso denegado"}, status=403)
+        return Response(EmergencySerializer(emergency).data)

@@ -8,12 +8,14 @@ ALLOWED_HOSTS = ['*']
 
 # Minimal installed apps (No DB)
 INSTALLED_APPS = [
+    'rest_framework',
     'tasks',
 ]
 
 MIDDLEWARE = ['middleware.security.RequestSecurityMiddleware']
 
-ROOT_URLCONF = ''
+ROOT_URLCONF = 'config.urls'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {} # No database for this service (uses only Redis/RabbitMQ)
 
@@ -24,6 +26,10 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 RABBITMQ_URL = os.environ.get('RABBITMQ_URL', 'amqp://samr:samr_password@rabbitmq:5672//')
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+JWT_PUBLIC_KEY_PATH = os.environ.get('JWT_PUBLIC_KEY_PATH', '/keys/public.pem')
+NOTIFICATION_TTL_SECONDS = int(os.environ.get('NOTIFICATION_TTL_SECONDS', '86400'))
+NOTIFICATION_INBOX_LIMIT = int(os.environ.get('NOTIFICATION_INBOX_LIMIT', '100'))
 
 # ============================================================================
 # CELERY CONFIGURATION
@@ -43,6 +49,7 @@ RABBITMQ_EXCHANGE = 'samr.events'
 RABBITMQ_QUEUE_NOTIFICATION = 'notification-service.queue'
 RABBITMQ_CONSUME_KEYS = [
     'auth.account_locked',
+    'auth.password_reset_requested',
     'vitals.critical_detected',
     'vity.escalation_requested',
     'recursos.asignados',

@@ -38,4 +38,9 @@ def device_id():
 
 @pytest.fixture
 def auth_jwt(rsa_keys):
-    return jwt.encode({"usuario_id": str(uuid.uuid4()), "email": "professional@test.com", "rol": "professional", "type": "access", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)}, rsa_keys[0], algorithm="RS256")
+    return jwt.encode({"usuario_id": str(uuid.uuid4()), "email": "professional@test.com", "rol": "professional", "type": "access", "iss": "samr-auth-service", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)}, rsa_keys[0], algorithm="RS256")
+
+
+@pytest.fixture
+def patient_jwt(rsa_keys, patient_id):
+    return jwt.encode({"usuario_id": str(patient_id), "email": "patient@test.com", "rol": "patient", "type": "access", "iss": "samr-auth-service", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)}, rsa_keys[0], algorithm="RS256")

@@ -201,11 +201,11 @@ De acuerdo a las últimas actualizaciones de la arquitectura (Fase 3 / v4.0), la
    ```bash
    docker-compose up -d --build
    ```
-   *Nota 1: En el primer arranque, PostgreSQL ejecutará internamente el script `scripts/init-db.sh` mapeado en su volumen de inicialización (`docker-entrypoint-initdb.d`). Este script aprovisionará las 11 bases de datos aisladas y aplicará las reglas DDL de seguridad e inmutabilidad directamente desde el motor de la base de datos (ej. creación de los schemas con el tipo de dato JSONB, cifrado BYTEA, UUID, y la aplicación estricta de `REVOKE UPDATE, DELETE` en `audit_log`).*
+   *Nota 1: En el primer arranque, PostgreSQL ejecutará internamente `scripts/init-db.sh` para aprovisionar las 11 bases aisladas. Cada servicio crea y evoluciona sus propias tablas mediante migraciones Django; las reglas de motor, como la inmutabilidad de auditoría, también se instalan mediante la migración versionada del servicio propietario.*
    *Nota 2: La configuración del `docker-compose.yml` ya incluye el uso correcto del alias de red `postgres` y la definición explícita de `DB_HOST=samr-postgres` para garantizar la conexión entre los servicios backend y la base de datos de manera aislada.*
 
 3. **Ejecutar las migraciones de Django:**
-   Si bien el script de BD inicializa la estructura de las tablas obligatorias asegurando las reglas DDL de negocio, los microservicios continúan aplicando sus migraciones con el ORM automáticamente durante su arranque. Para lanzar las migraciones manualmente en todo el cluster si necesitas resincronizar sin destruir el volumen, puedes usar:
+   Los microservicios aplican automáticamente las migraciones de su base durante el arranque. Para lanzarlas manualmente en todo el clúster si necesitas resincronizar sin destruir el volumen, puedes usar:
    ```bash
    SERVICES=("samr-auth" "samr-patient" "samr-solicitud" "samr-monitoring" "samr-evaluacion" "samr-teleconsult" "samr-emergency" "samr-cierre-caso" "samr-historial-interop" "samr-audit" "samr-admin-integracion")
    for svc in "${SERVICES[@]}"; do
@@ -222,3 +222,9 @@ De acuerdo a las últimas actualizaciones de la arquitectura (Fase 3 / v4.0), la
    ```bash
    winpty docker exec -it samr-auth python manage.py createsuperuser
    ```
+
+## Backend - API de notificaciones del MVP
+
+El contenedor `notification-service` atiende HTTP en el puerto interno `8012`; `notification-consumer` recibe eventos y `notification-worker` los procesa. Nginx publica la bandeja en `GET /api/notifications/` y permite marcar entradas mediante `PATCH /api/notifications/{id}/read/`.
+
+Las entradas viven en Redis por 24 horas, con un máximo de 100 por usuario. Las dependencias nuevas del servicio son `djangorestframework==3.15.2`, `PyJWT==2.8.0`, `cryptography==42.0.5` y `gunicorn==21.2.0`; Docker las instala al reconstruir la imagen.

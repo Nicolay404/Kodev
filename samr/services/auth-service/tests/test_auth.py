@@ -81,3 +81,26 @@ class TestAuthAPI:
         create_user.refresh_from_db()
         assert create_user.failed_attempts == 5
         assert create_user.locked_until is not None
+
+    @patch("apps.auth.views.publicar_evento")
+    def test_password_change_requires_current_password(self, mock_publish, api_client, create_user, user_data):
+        login = api_client.post(reverse("login"), user_data, format="json")
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access_token']}")
+        denied = api_client.post(reverse("password_change"), {"current_password": "wrong123", "new_password": "changed123"}, format="json")
+        changed = api_client.post(reverse("password_change"), {"current_password": user_data["password"], "new_password": "changed123"}, format="json")
+        assert denied.status_code == 400 and changed.status_code == 200
+        create_user.refresh_from_db()
+        assert create_user.check_password("changed123")
+
+    @patch("apps.auth.views.publicar_evento")
+    def test_password_reset_is_generic_and_token_is_single_use(self, mock_publish, api_client, create_user):
+        requested = api_client.post(reverse("password_reset_request"), {"email": create_user.email}, format="json")
+        token = mock_publish.call_args.args[1]["reset_token"]
+        reset = api_client.post(reverse("password_reset_confirm"), {"token": token, "new_password": "recovered123"}, format="json")
+        reused = api_client.post(reverse("password_reset_confirm"), {"token": token, "new_password": "another123"}, format="json")
+        unknown = api_client.post(reverse("password_reset_request"), {"email": "missing@example.com"}, format="json")
+        assert requested.status_code == 202 and unknown.status_code == 202
+        assert requested.data == unknown.data
+        assert reset.status_code == 200 and reused.status_code == 400
+        create_user.refresh_from_db()
+        assert create_user.check_password("recovered123")
