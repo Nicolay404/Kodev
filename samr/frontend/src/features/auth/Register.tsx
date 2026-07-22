@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, Activity, ShieldCheck, Radio, HeartPulse } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle, Eye, EyeOff, Activity, HeartPulse, Radio, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { login, getMe } from '../../services/authService';
+import { register, login, getMe } from '../../services/authService';
 import { Button } from '../../components/ui/Button';
 
 const HIGHLIGHTS = [
@@ -11,37 +11,42 @@ const HIGHLIGHTS = [
   { icon: ShieldCheck, text: 'Trazabilidad completa para auditoría clínica' },
 ];
 
-export function Login() {
+function extractErrors(err: unknown): string[] {
+  const data = (err as { response?: { data?: Record<string, string[]> } })?.response?.data;
+  if (!data) return ['No se pudo conectar con el servidor. Verifica que el backend esté corriendo.'];
+  return Object.values(data).flat();
+}
+
+export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const navigate = useNavigate();
-  const location = useLocation();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setErrors([]);
+
+    if (password !== confirmPassword) {
+      setErrors(['Las contraseñas no coinciden.']);
+      return;
+    }
+
     setLoading(true);
     try {
+      // El registro público del backend crea siempre rol `patient`.
+      await register(email, password);
       const tokens = await login(email, password);
-      // El JWT trae `rol`/`email`, pero /api/auth/me/ es la fuente de verdad tipada.
       useAuthStore.getState().setAccessToken(tokens.access_token);
       const user = await getMe();
       setAuth(tokens, user);
-      const from = (location.state as { from?: Location })?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      navigate('/', { replace: true });
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 401) {
-        setError('Correo o contraseña incorrectos.');
-      } else if (status === 429) {
-        setError('Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intenta más tarde.');
-      } else {
-        setError('No se pudo conectar con el servidor. Verifica que el backend esté corriendo.');
-      }
+      setErrors(extractErrors(err));
     } finally {
       setLoading(false);
     }
@@ -64,10 +69,10 @@ export function Login() {
 
           <div className="relative space-y-6">
             <h2 className="text-3xl font-bold leading-tight">
-              Atención médica remota, conectada y segura.
+              Crea tu cuenta de paciente.
             </h2>
             <p className="text-teal-100 text-sm">
-              Sistema de Atención Médica Remota — pacientes, personal clínico y administración en una sola plataforma.
+              Regístrate para reportar síntomas, solicitar atención y hacer seguimiento a tu historial médico.
             </p>
             <ul className="space-y-3 pt-2">
               {HIGHLIGHTS.map(({ icon: Icon, text }) => (
@@ -82,7 +87,7 @@ export function Login() {
           </div>
 
           <p className="relative text-xs text-teal-200/70">
-            Acceso exclusivo para pacientes y personal autorizado.
+            El registro público solo crea cuentas de paciente. El personal clínico y administrativo se da de alta por otro medio.
           </p>
         </div>
 
@@ -95,15 +100,17 @@ export function Login() {
               </div>
               <span className="font-bold text-lg text-gray-900">SAMR</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Bienvenido de nuevo</h1>
-            <p className="text-sm text-gray-500 mt-1">Inicia sesión en tu cuenta para continuar</p>
+            <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
+            <p className="text-sm text-gray-500 mt-1">Regístrate como paciente para empezar</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {error && (
+          <form onSubmit={handleRegister} className="space-y-4">
+            {errors.length > 0 && (
               <div className="flex items-start gap-2 bg-error-50 text-error-700 text-sm px-3 py-2 rounded-md border border-error-200">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
+                <ul className="space-y-0.5">
+                  {errors.map((msg) => <li key={msg}>{msg}</li>)}
+                </ul>
               </div>
             )}
             <div>
@@ -115,21 +122,17 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="usuario@samr.test"
+                placeholder="tucorreo@ejemplo.com"
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-                <Link to="/forgot-password" className="text-xs text-teal-600 hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  autoComplete="current-password"
+                  minLength={8}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -145,17 +148,30 @@ export function Login() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p className="text-xs text-gray-400 mt-1">Mínimo 8 caracteres, con letras y números.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="********"
+              />
             </div>
 
             <Button type="submit" size="lg" className="w-full mt-2 rounded-lg" disabled={loading}>
-              {loading ? 'Iniciando sesión...' : 'Ingresar'}
+              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            ¿Eres paciente y no tienes cuenta?{' '}
-            <Link to="/register" className="text-teal-600 font-medium hover:underline">
-              Regístrate
+            ¿Ya tienes cuenta?{' '}
+            <Link to="/login" className="text-teal-600 font-medium hover:underline">
+              Inicia sesión
             </Link>
           </p>
         </div>

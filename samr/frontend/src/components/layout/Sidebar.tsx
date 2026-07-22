@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "../../utils/cn";
-import { LayoutDashboard, PhoneCall, Activity, Siren, Bell, Settings, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, PhoneCall, Activity, Siren, Bell, Settings, ShieldCheck, Bot, FileText, FolderCheck } from "lucide-react";
 import { useAuthStore, type Role } from "../../store/authStore";
 
 interface SidebarProps {
@@ -10,14 +10,17 @@ interface SidebarProps {
 
 const CLINICAL_ROLES: Role[] = ['professional', 'nurse', 'center_admin', 'system_admin'];
 const TELECONSULT_ROLES: Role[] = ['professional', 'center_admin', 'system_admin'];
-const EMERGENCY_ROLES: Role[] = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'];
+const PATIENT_AND_CLINICAL_ROLES: Role[] = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = useAuthStore((state) => state.user?.role);
 
   const menuItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, show: true },
-    { name: "Emergencias", path: "/emergencies", icon: Siren, show: role && EMERGENCY_ROLES.includes(role) },
+    { name: "Asistente de Orientación", path: "/help", icon: Bot, show: role === 'patient' },
+    { name: "Emergencias", path: "/emergencies", icon: Siren, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
+    { name: "Historial Clínico", path: "/historial", icon: FileText, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
+    { name: "Cierre de Casos", path: "/cierre-casos", icon: FolderCheck, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
     { name: "Alertas de Monitoreo", path: "/monitoring", icon: Activity, show: role && CLINICAL_ROLES.includes(role) },
     { name: "Teleconsulta", path: "/teleconsult", icon: PhoneCall, show: role && TELECONSULT_ROLES.includes(role) },
     { name: "Notificaciones", path: "/notifications", icon: Bell, show: true },
