@@ -4,10 +4,14 @@ from .models import AuditLog, AuditReview
 
 class AuditLogSerializer(serializers.ModelSerializer):
     review = serializers.SerializerMethodField()
+    reviews = serializers.SerializerMethodField()
     class Meta: model = AuditLog; fields = "__all__"
     def get_review(self, obj):
-        review = AuditReview.objects.filter(audit_log_id=obj.id).first()
+        review = AuditReview.objects.filter(audit_log_id=obj.id).order_by("-created_at").first()
         return AuditReviewSerializer(review).data if review else None
+    def get_reviews(self, obj):
+        reviews = AuditReview.objects.filter(audit_log_id=obj.id).order_by("created_at")
+        return AuditReviewSerializer(reviews, many=True).data
 
 
 class AuditReviewSerializer(serializers.ModelSerializer):

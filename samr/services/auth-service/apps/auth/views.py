@@ -11,8 +11,15 @@ from rest_framework.views import APIView
 from events.publisher import publicar_evento
 
 from .models import User
-from .serializers import LoginSerializer, RefreshTokenSerializer, UserSerializer
-from .services import TokenError, generar_jwt_pair, verify_jwt
+from .serializers import (
+    LoginSerializer,
+    PasswordChangeSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RefreshTokenSerializer,
+    UserSerializer,
+)
+from .services import TokenError, generar_jwt_pair, generar_password_reset_token, verify_jwt, verify_password_reset_token
 
 
 class RegisterView(APIView):
@@ -97,3 +104,58 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not request.user.check_password(serializer.validated_data["current_password"]):
+            return Response({"current_password": ["Contraseña actual incorrecta."]}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.set_password(serializer.validated_data["new_password"])
+        request.user.save(update_fields=["password"])
+        return Response({"detail": "Contraseña actualizada."})
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.filter(email=serializer.validated_data["email"]).first()
+        if user:
+            publicar_evento(
+                "auth.password_reset_requested",
+                {
+                    "usuario_id": str(user.id),
+                    "email": user.email,
+                    "reset_token": generar_password_reset_token(user),
+                    "expires_in_seconds": 900,
+                },
+            )
+        return Response(
+            {"detail": "Si la cuenta existe, se enviaron instrucciones de recuperación."},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            payload = verify_jwt(serializer.validated_data["token"])
+            user = User.objects.get(id=payload.get("usuario_id"))
+            verify_password_reset_token(serializer.validated_data["token"], user)
+        except (TokenError, User.DoesNotExist, ValueError, TypeError):
+            return Response({"error": "Token de recuperación inválido o expirado"}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data["new_password"])
+        user.failed_attempts = 0
+        user.locked_until = None
+        user.save(update_fields=["password", "failed_attempts", "locked_until"])
+        return Response({"detail": "Contraseña restablecida."})

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from events.publisher import publicar_evento
 from tasks.validate_with_consortium import validate_with_consortium
-from .models import Conversation, FAQ
+from .models import Conversation, FAQ, Solicitud
 from .permissions import IsAdminUser
 from .serializers import ChatMessageSerializer, FAQSerializer, SolicitudSerializer
 from .services import get_chat_adapter
@@ -78,6 +78,12 @@ class FAQView(APIView):
 class SolicitudView(PatientOnlyMixin, APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        if not self.ensure_patient(request):
+            return Response({"error": "Acceso exclusivo para pacientes"}, status=403)
+        solicitudes = Solicitud.objects.filter(patient_id=request.user.id).order_by("-created_at")
+        return Response(SolicitudSerializer(solicitudes, many=True).data)
+
     def post(self, request):
         if not self.ensure_patient(request):
             return Response({"error": "Acceso exclusivo para pacientes"}, status=403)
@@ -87,6 +93,18 @@ class SolicitudView(PatientOnlyMixin, APIView):
         publicar_evento("solicitud.creada", {"solicitud_id": str(solicitud.id), "patient_id": str(solicitud.patient_id), "sintomas": solicitud.sintomas, "fuente": solicitud.fuente})
         validate_with_consortium.delay(str(solicitud.id))
         return Response(SolicitudSerializer(solicitud).data, status=201)
+
+
+class SolicitudDetailView(PatientOnlyMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        if not self.ensure_patient(request):
+            return Response({"error": "Acceso exclusivo para pacientes"}, status=403)
+        solicitud = Solicitud.objects.filter(id=id, patient_id=request.user.id).first()
+        if not solicitud:
+            return Response({"error": "Solicitud no encontrada"}, status=404)
+        return Response(SolicitudSerializer(solicitud).data)
 
 
 class ConversationDeleteView(PatientOnlyMixin, APIView):

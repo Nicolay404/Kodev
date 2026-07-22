@@ -91,7 +91,7 @@ services:
       API_GATEWAY_URL: "https://nginx"
       JWT_PUBLIC_KEY_PATH: "/keys/public.pem"
       VERIFY_GATEWAY_TLS: "false"
-      BFF_ALLOWED_ORIGINS: "http://localhost:3000"
+      BFF_ALLOWED_ORIGINS: "${BFF_ALLOWED_ORIGINS:-http://localhost:5173}"
     volumes:
       - ./keys/public.pem:/keys/public.pem:ro
 
@@ -122,6 +122,17 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
+      REDIS_URL: ${REDIS_URL}
+
+  notification-worker:
+    <<: *django-service
+    build: ./services/notification-service
+    container_name: samr-notification-worker
+    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency=1"]
+    environment:
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
+      REDIS_URL: ${REDIS_URL}
 
   notification-consumer:
     <<: *django-service
@@ -135,6 +146,7 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       DB_PASSWORD: ${DB_PASSWORD}
       MVP_NOTIFICATION_BACKEND: ${MVP_NOTIFICATION_BACKEND}
+      REDIS_URL: ${REDIS_URL}
 
   patient-service:
     <<: *django-service
@@ -193,6 +205,7 @@ services:
       MVP_DEFAULT_RISK_LEVEL: ${MVP_DEFAULT_RISK_LEVEL}
       MVP_CRITICAL_TERMS: ${MVP_CRITICAL_TERMS}
       MVP_HIGH_TERMS: ${MVP_HIGH_TERMS}
+      PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL}
 
   teleconsult-service:
     <<: *django-service

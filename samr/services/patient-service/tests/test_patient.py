@@ -23,6 +23,7 @@ class TestPatientAPI:
             "allergies": ["penicilina"],
         }, format="json")
         assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["id"] == response.data["user_id"]
         assert "cedula" not in response.data and "cedula_encrypted" not in response.data
         assert Patient.objects.get().cedula_encrypted != b"0102030405"
         assert api_client.get(reverse("patient_me")).status_code == 200

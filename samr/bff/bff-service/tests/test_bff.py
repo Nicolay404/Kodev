@@ -46,6 +46,23 @@ def test_health():
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
+@pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
+def test_cors_preflight_allows_vite_origin(method):
+    client = TestClient(app)
+    response = client.options(
+        "/dashboard/",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": method,
+            "Access-Control-Request-Headers": "Authorization,X-Request-ID",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert method in response.headers["access-control-allow-methods"]
+
 @pytest.mark.asyncio
 async def test_dashboard_patient(auth_jwt_patient):
     
@@ -61,5 +78,6 @@ async def test_dashboard_patient(auth_jwt_patient):
         with patch('main.http_client.get', return_value=MockResponse({"mock": "data"}, 200)) as mock_get:
             response = client.get("/dashboard/", headers={"Authorization": f"Bearer {auth_jwt_patient}"})
     assert response.status_code == 200
-    assert set(response.json()) == {'patient', 'evaluacion', 'monitoring', 'atencion'}
+    assert set(response.json()) == {'role', 'patient', 'solicitudes', 'monitoring', 'atencion', 'emergencias', 'teleconsultas', 'notificaciones'}
+    assert response.json()['role'] == 'patient'
     assert response.json()['patient'] == {"mock": "data"}

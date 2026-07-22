@@ -1,4 +1,6 @@
 import datetime
+import hashlib
+import hmac
 import uuid
 
 import jwt
@@ -61,3 +63,29 @@ def verify_jwt(token):
         raise TokenError("Token expirado") from exc
     except jwt.InvalidTokenError as exc:
         raise TokenError("Token inválido") from exc
+
+
+def generar_password_reset_token(user):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    private_key = _load_key(settings.JWT_PRIVATE_KEY_PATH, private=True)
+    payload = {
+        "usuario_id": str(user.id),
+        "email": user.email,
+        "pwd": hashlib.sha256(user.password.encode("utf-8")).hexdigest(),
+        "type": "password_reset",
+        "iat": now,
+        "exp": now + datetime.timedelta(minutes=15),
+        "jti": str(uuid.uuid4()),
+        "iss": "samr-auth-service",
+    }
+    return jwt.encode(payload, private_key, algorithm="RS256")
+
+
+def verify_password_reset_token(token, user):
+    payload = verify_jwt(token)
+    expected = hashlib.sha256(user.password.encode("utf-8")).hexdigest()
+    if payload.get("type") != "password_reset" or str(payload.get("usuario_id")) != str(user.id):
+        raise TokenError("Token de recuperación inválido")
+    if not hmac.compare_digest(str(payload.get("pwd", "")), expected):
+        raise TokenError("Token de recuperación ya utilizado")
+    return payload

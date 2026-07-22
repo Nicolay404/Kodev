@@ -18,6 +18,7 @@ class MatchingSerializer(serializers.ModelSerializer):
 class MatchingRequestSerializer(serializers.Serializer):
     professional_id = serializers.UUIDField(required=False)
     patient_id = serializers.UUIDField()
+    center_id = serializers.UUIDField(required=False)
 
 
 class AvailableCenterSerializer(serializers.ModelSerializer):

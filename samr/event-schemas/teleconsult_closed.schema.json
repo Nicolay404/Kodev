@@ -15,7 +15,11 @@
         "payload": {
           "type": "object",
           "required": [
-            "session_id"
+            "session_id",
+            "patient_id",
+            "professional_id",
+            "diagnosis",
+            "closed_at"
           ]
         }
       }

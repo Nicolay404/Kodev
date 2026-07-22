@@ -32,3 +32,28 @@ class LoginSerializer(serializers.Serializer):
 
 class RefreshTokenSerializer(serializers.Serializer):
     refresh_token = serializers.CharField()
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(trim_whitespace=False)
+    new_password = serializers.CharField(trim_whitespace=False)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        if len(value) < 8 or not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
+            raise serializers.ValidationError(
+                "La contraseña debe tener al menos 8 caracteres, letras y números."
+            )
+        return value
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    new_password = serializers.CharField(trim_whitespace=False)
+
+    def validate_new_password(self, value):
+        return PasswordChangeSerializer().validate_new_password(value)
