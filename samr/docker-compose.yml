@@ -170,6 +170,7 @@ services:
       PATIENT_DATA_KEY: ${PATIENT_DATA_KEY}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,patient-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   solicitud-service:
     <<: *django-service
@@ -187,6 +188,7 @@ services:
       MVP_CONSORTIUM_OUTCOME: ${MVP_CONSORTIUM_OUTCOME}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,solicitud-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   monitoring-service:
     <<: *django-service
@@ -204,6 +206,7 @@ services:
       MVP_VITAL_THRESHOLDS: ${MVP_VITAL_THRESHOLDS}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,monitoring-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   evaluacion-service:
     <<: *django-service
@@ -222,6 +225,7 @@ services:
       PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,evaluacion-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   teleconsult-service:
     <<: *django-service
@@ -236,6 +240,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,teleconsult-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   emergency-service:
     <<: *django-service
@@ -251,6 +256,7 @@ services:
       MVP_FIRST_AID_GUIDE: ${MVP_FIRST_AID_GUIDE}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,emergency-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   cierre-caso-service:
     <<: *django-service
@@ -265,6 +271,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,cierre-caso-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   historial-interop-service:
     <<: *django-service
@@ -281,6 +288,7 @@ services:
       PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,historial-interop-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   audit-service:
     <<: *django-service
@@ -295,6 +303,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,audit-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   admin-integracion-service:
     <<: *django-service
@@ -310,6 +319,7 @@ services:
       MVP_CENTER_VALIDATION_OUTCOME: ${MVP_CENTER_VALIDATION_OUTCOME}
       DJANGO_SETTINGS_MODULE: config.settings.production
       ALLOWED_HOST: localhost,nginx,admin-integracion-service
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   solicitud-worker:
     extends:
