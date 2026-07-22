@@ -1,17 +1,24 @@
 import re
+from django.utils import timezone
 
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import User
 
+# Versión vigente de los Términos y Condiciones / Tratamiento de Datos (LOPDP Ecuador)
+# que el usuario acepta al registrarse. Súbela cuando el texto legal cambie de forma
+# sustancial, para poder auditar con qué versión aceptó cada usuario.
+TERMS_VERSION = "1.0"
+
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
+    terms_accepted = serializers.BooleanField(write_only=True)
 
     class Meta:
         model = User
-        fields = ("id", "email", "password", "role", "created_at")
+        fields = ("id", "email", "password", "role", "created_at", "terms_accepted")
         read_only_fields = ("id", "role", "created_at")
 
     def validate_password(self, value):
@@ -21,8 +28,20 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Debes aceptar los Términos y Condiciones y el Tratamiento de Datos para registrarte."
+            )
+        return value
+
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        validated_data.pop("terms_accepted")
+        return User.objects.create_user(
+            terms_accepted_at=timezone.now(),
+            terms_version=TERMS_VERSION,
+            **validated_data,
+        )
 
 
 class LoginSerializer(serializers.Serializer):

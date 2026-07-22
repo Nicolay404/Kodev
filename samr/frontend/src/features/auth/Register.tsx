@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, Activity, HeartPulse, Radio, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Activity, HeartPulse, Radio, ShieldCheck, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { register, login, getMe } from '../../services/authService';
 import { Button } from '../../components/ui/Button';
@@ -10,6 +10,105 @@ const HIGHLIGHTS = [
   { icon: Radio, text: 'Teleconsulta con videollamada segura' },
   { icon: ShieldCheck, text: 'Trazabilidad completa para auditoría clínica' },
 ];
+
+const TERMS_VERSION = '1.0';
+
+function TermsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-surface rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="flex items-start justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">
+            Términos y Condiciones, Tratamiento de Datos y uso de IA
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="text-gray-400 hover:text-gray-600 shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
+          <p className="text-xs text-gray-400">Versión {TERMS_VERSION} — Sistema de Atención Médica Remota (SAMR)</p>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">1. Responsable del tratamiento</h3>
+            <p>
+              SAMR (Sistema de Atención Médica Remota) es el responsable del tratamiento de tus datos personales
+              recolectados a través de esta plataforma, en los términos de la Ley Orgánica de Protección de Datos
+              Personales de Ecuador (LOPDP, Registro Oficial Suplemento 459 del 26 de mayo de 2021).
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">2. Datos que tratamos y finalidad</h3>
+            <p>
+              Recolectamos datos de identificación (correo, credenciales de acceso) y, una vez completes tu perfil,
+              datos de salud (síntomas, signos vitales, historial clínico, resultados de teleconsultas). Los datos
+              de salud son una <strong>categoría especial de datos</strong> según el Art. 9 de la LOPDP y solo se
+              tratan con tu consentimiento explícito, para la finalidad exclusiva de brindarte atención médica
+              remota, evaluar el riesgo de tu caso y coordinar tu atención con profesionales de salud y centros
+              médicos del consorcio.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">3. Uso de Inteligencia Artificial</h3>
+            <p>
+              SAMR utiliza componentes de Inteligencia Artificial (chatbot de orientación, evaluación automatizada
+              del nivel de riesgo y recomendaciones clínicas asistidas) para agilizar tu atención. Estas decisiones
+              automatizadas:
+            </p>
+            <ul className="list-disc pl-5 mt-1 space-y-0.5">
+              <li>Nunca sustituyen el criterio de un profesional de salud humano — toda recomendación de la IA
+                queda sujeta a validación médica antes de una decisión clínica definitiva.</li>
+              <li>Quedan registradas de forma inalterable (append-only) junto con su nivel de confianza y las
+                fuentes utilizadas, para que puedas solicitar una explicación de cualquier decisión que te afecte.</li>
+              <li>Pueden ser auditadas por el Delegado de Protección de Datos (DPD) de SAMR.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">4. Tus derechos como titular de los datos</h3>
+            <p>De acuerdo con los Arts. 9 a 15 de la LOPDP, en cualquier momento puedes ejercer:</p>
+            <ul className="list-disc pl-5 mt-1 space-y-0.5">
+              <li><strong>Acceso:</strong> conocer qué datos tenemos sobre ti.</li>
+              <li><strong>Rectificación:</strong> corregir datos inexactos desde tu perfil.</li>
+              <li><strong>Eliminación (derecho al olvido):</strong> solicitar la baja de tu cuenta y tus datos.</li>
+              <li><strong>Oposición y revocatoria:</strong> retirar tu consentimiento para el tratamiento con fines
+                de IA en cualquier momento, sin afectar la licitud del tratamiento previo.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">5. Compartición de datos</h3>
+            <p>
+              Tus datos clínicos solo se comparten con el Consorcio, el Ministerio de Salud Pública (MSP) y el
+              IESS cuando exista una atención registrada y tu consentimiento de compartición esté activo, bajo
+              cifrado en tránsito y verificación de identidad entre sistemas.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-800 mb-1">6. Aceptación</h3>
+            <p>
+              Al marcar la casilla de aceptación te registras como paciente de SAMR y confirmas que has leído y
+              comprendido este documento, aceptando el tratamiento de tus datos personales y de salud, y el uso
+              de Inteligencia Artificial descrito en la sección 3, en los términos de la LOPDP.
+            </p>
+          </section>
+        </div>
+
+        <Button type="button" onClick={onClose} className="w-full mt-6 rounded-lg">
+          Cerrar
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function extractErrors(err: unknown): string[] {
   const data = (err as { response?: { data?: Record<string, string[]> } })?.response?.data;
@@ -24,6 +123,8 @@ export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -36,10 +137,15 @@ export function Register() {
       return;
     }
 
+    if (!termsAccepted) {
+      setErrors(['Debes aceptar los Términos y Condiciones y el Tratamiento de Datos para registrarte.']);
+      return;
+    }
+
     setLoading(true);
     try {
       // El registro público del backend crea siempre rol `patient`.
-      await register(email, password);
+      await register(email, password, termsAccepted);
       const tokens = await login(email, password);
       useAuthStore.getState().setAccessToken(tokens.access_token);
       const user = await getMe();
@@ -163,7 +269,29 @@ export function Register() {
               />
             </div>
 
-            <Button type="submit" size="lg" className="w-full mt-2 rounded-lg" disabled={loading}>
+            <div className="flex items-start gap-2 pt-1">
+              <input
+                id="terms-checkbox"
+                type="checkbox"
+                required
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 shrink-0"
+              />
+              <label htmlFor="terms-checkbox" className="text-sm text-gray-600">
+                He leído y acepto los{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowTerms(true)}
+                  className="text-teal-600 font-medium hover:underline"
+                >
+                  Términos y Condiciones, el Tratamiento de Datos y el uso de Inteligencia Artificial
+                </button>{' '}
+                de SAMR, conforme a la LOPDP de Ecuador.
+              </label>
+            </div>
+
+            <Button type="submit" size="lg" className="w-full mt-2 rounded-lg" disabled={loading || !termsAccepted}>
               {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </Button>
           </form>
@@ -176,6 +304,8 @@ export function Register() {
           </p>
         </div>
       </div>
+
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
     </div>
   );
 }

@@ -22,9 +22,11 @@ export const getMe = async (): Promise<AuthUser> => {
  * POST /api/auth/register/ (auth-service, vía Gateway). El backend crea
  * siempre rol `patient` — no hay autorregistro para personal clínico o
  * administrativo (esos roles se asignan manualmente, fuera de la app).
+ * `termsAccepted` es obligatorio: el backend rechaza el registro (400) si
+ * no viene en `true` (aceptación de Términos, Tratamiento de Datos e IA).
  */
-export const register = async (email: string, password: string): Promise<void> => {
-  await gatewayClient.post('/api/auth/register/', { email, password });
+export const register = async (email: string, password: string, termsAccepted: boolean): Promise<void> => {
+  await gatewayClient.post('/api/auth/register/', { email, password, terms_accepted: termsAccepted });
 };
 
 /** POST /api/auth/password/change/ — requiere sesión activa. */
