@@ -128,3 +128,26 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.
 `supabase-init` crea los schemas de forma idempotente y las migraciones usan `--fake-initial` para adoptar tablas canónicas preexistentes sin recrearlas. La red Compose habilita IPv6 para el endpoint directo de Supabase. El modo PostgreSQL local original permanece disponible ejecutando únicamente `docker compose up -d --build`.
 
 `.env` está excluido de Git. Nunca deben copiarse contraseñas, hosts privados ni claves reales a `.env.example`, README, ONBOARDING o commits.
+
+## Backend - usuarios demo en Supabase
+
+Las siguientes cuentas existentes usan la contraseña común `Demo1234` exclusivamente para probar el MVP:
+
+| Usuario | Rol backend | Contraseña |
+|---|---|---|
+| `paciente.juan@gmail.com` | `patient` | `Demo1234` |
+| `paciente.maria@gmail.com` | `patient` | `Demo1234` |
+| `user@prueba1.com` | `patient` | `Demo1234` |
+| `dr.mendoza@samr-salud.gob.ec` | `professional` | `Demo1234` |
+| `admin.sistema@samr-salud.gob.ec` | `system_admin` | `Demo1234` |
+| `delegado.dpd@samr-salud.gob.ec` | `dpd_delegate` | `Demo1234` |
+
+Para restablecerlas nuevamente en el modo Supabase, ejecuta desde `samr/`:
+
+```bash
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml run --rm --no-deps auth-service python manage.py reset_demo_passwords --password Demo1234
+```
+
+El comando no crea usuarios: exige que existan las seis cuentas, reemplaza sus hashes con el formato Django, limpia bloqueos y corrige el rol legado `pacient` de `user@prueba1.com` a `patient`. Para usar otra clave temporal, sustituye el valor de `--password`; debe tener al menos ocho caracteres, una letra y un número.
+
+Estas credenciales son públicas dentro del repositorio y no deben reutilizarse en producción ni en cuentas reales. Las credenciales de conexión a Supabase continúan exclusivamente en el `.env` ignorado por Git.

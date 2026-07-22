@@ -251,3 +251,24 @@ Supabase se usa como PostgreSQL administrado. El sistema no delega el login a Su
 `supabase-init` crea idempotentemente los once schemas documentados. Cada servicio configura `DB_SCHEMA_MODE=schema`, su `DB_SCHEMA` exclusivo, `DB_SSLMODE=require` y adopta tablas existentes mediante `migrate --fake-initial --noinput`. No borres schemas ni ejecutes `down -v` para resolver problemas de conexión.
 
 Para volver al PostgreSQL local se omite `docker-compose.supabase.yml` y se usan los valores locales de `.env.example`.
+
+## Backend - credenciales de prueba y restablecimiento
+
+Las seis cuentas precargadas en Supabase comparten la contraseña temporal `Demo1234` para la demostración:
+
+| Correo | Rol |
+|---|---|
+| `paciente.juan@gmail.com` | Paciente (`patient`) |
+| `paciente.maria@gmail.com` | Paciente (`patient`) |
+| `user@prueba1.com` | Paciente (`patient`) |
+| `dr.mendoza@samr-salud.gob.ec` | Profesional (`professional`) |
+| `admin.sistema@samr-salud.gob.ec` | Administrador SAMR (`system_admin`) |
+| `delegado.dpd@samr-salud.gob.ec` | Delegado DPD (`dpd_delegate`) |
+
+Si necesitas volver a generar los hashes o desbloquear las cuentas, ejecuta desde `samr/`:
+
+```bash
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml run --rm --no-deps auth-service python manage.py reset_demo_passwords --password Demo1234
+```
+
+El procedimiento modifica solamente esas cuentas existentes, no crea datos nuevos y cancela todos los cambios si falta alguna. `Demo1234` es una clave conocida para el MVP; nunca debe usarse en un entorno productivo.

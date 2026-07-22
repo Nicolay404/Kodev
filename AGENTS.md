@@ -655,3 +655,11 @@ volumes: [pgdata]
 - Los once servicios aplicaron `migrate --fake-initial`: cada migración inicial de dominio se marcó como adoptada y las tablas auxiliares de Django quedaron dentro del schema propietario.
 - La conexión efectiva de `auth-service` quedó verificada sobre la base `postgres`, schema `auth_db` y SSL activo; el ORM conserva los seis usuarios existentes.
 - Se detectó una cuenta legada con rol `pacient` y contraseña fuera del formato Django. No se corrigió ni se restableció automáticamente porque las credenciales y la intención de esa fila no están documentadas.
+
+## 2026-07-22 — Restablecimiento reproducible de cuentas demo
+
+- `auth-service` incorpora un comando transaccional para restablecer exclusivamente las seis cuentas ya existentes del MVP, limpiar bloqueos y generar hashes mediante Django.
+- La cuenta legada `user@prueba1.com` se normaliza del rol inválido `pacient` al rol arquitectónico `patient`; el comando aborta sin cambios si falta cualquiera de las cuentas esperadas.
+- La contraseña se recibe obligatoriamente por argumento; la clave conocida `Demo1234` queda documentada solo como credencial pública del MVP y no se incorpora a variables de entorno ni a secretos reales.
+- La comprobación HTTP detectó que el login todavía intentaba guardar `last_login`, columna ausente del esquema canónico de Supabase; se retiró de `update_fields` y se conserva el reinicio de intentos fallidos y bloqueo.
+- Las pruebas del comando cubren el restablecimiento de hashes, roles y bloqueos, además del aborto atómico cuando falta una cuenta esperada.
