@@ -112,3 +112,19 @@ Dependencias backend añadidas por estos módulos: `celery==5.3.6` en `admin-int
 `notification-service` expone `GET /api/notifications/` y `PATCH /api/notifications/{id}/read/` a través de Nginx. La bandeja usa únicamente Redis, conserva hasta 100 entradas por usuario durante 24 horas y requiere un JWT access emitido por `samr-auth-service`.
 
 El proceso HTTP, `notification-consumer` y `notification-worker` se ejecutan por separado. El backend externo continúa simulado con `MVP_NOTIFICATION_BACKEND=log`; la bandeja Redis permite probar el recorrido completo sin presentar el log como un envío FCM real.
+
+## Backend - ejecución con PostgreSQL de Supabase
+
+El backend admite Supabase como PostgreSQL remoto sin usar el SDK de Supabase ni Supabase Auth. `auth-service` continúa siendo el único responsable de validar credenciales y firmar JWT; la persistencia se realiza en la base indicada por `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`.
+
+La arquitectura mantiene los once dominios aislados mediante schemas PostgreSQL (`auth_db`, `patient_db`, `solicitud_db`, `monitoring_db`, `evaluacion_db`, `teleconsult_db`, `emergency_db`, `cierre_db`, `historial_db`, `audit_db` y `admin_db`). La conexión exige SSL y cada servicio fija su propio `search_path`; no existen consultas cruzadas entre schemas.
+
+Desde `samr/`, con las credenciales reales exclusivamente en `.env`, el modo Supabase se inicia con:
+
+```bash
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml up -d --build
+```
+
+`supabase-init` crea los schemas de forma idempotente y las migraciones usan `--fake-initial` para adoptar tablas canónicas preexistentes sin recrearlas. La red Compose habilita IPv6 para el endpoint directo de Supabase. El modo PostgreSQL local original permanece disponible ejecutando únicamente `docker compose up -d --build`.
+
+`.env` está excluido de Git. Nunca deben copiarse contraseñas, hosts privados ni claves reales a `.env.example`, README, ONBOARDING o commits.

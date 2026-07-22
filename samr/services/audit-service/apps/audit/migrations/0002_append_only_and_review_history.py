@@ -12,9 +12,9 @@ def create_append_only_trigger(apps, schema_editor):
             RAISE EXCEPTION 'audit_log is append-only';
         END;
         $$ LANGUAGE plpgsql;
-        DROP TRIGGER IF EXISTS audit_log_append_only ON audit_app_auditlog;
+        DROP TRIGGER IF EXISTS audit_log_append_only ON audit_log;
         CREATE TRIGGER audit_log_append_only
-        BEFORE UPDATE OR DELETE ON audit_app_auditlog
+        BEFORE UPDATE OR DELETE ON audit_log
         FOR EACH ROW EXECUTE FUNCTION samr_prevent_audit_log_mutation();
         """
     )
@@ -23,7 +23,7 @@ def create_append_only_trigger(apps, schema_editor):
 def drop_append_only_trigger(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
-    schema_editor.execute("DROP TRIGGER IF EXISTS audit_log_append_only ON audit_app_auditlog;")
+    schema_editor.execute("DROP TRIGGER IF EXISTS audit_log_append_only ON audit_log;")
     schema_editor.execute("DROP FUNCTION IF EXISTS samr_prevent_audit_log_mutation();")
 
 

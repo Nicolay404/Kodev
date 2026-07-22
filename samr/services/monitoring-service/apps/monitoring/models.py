@@ -9,6 +9,9 @@ class VitalSign(models.Model):
     value = models.JSONField()
     recorded_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "vital_signs"
+
 
 class Alert(models.Model):
     SEVERITIES = (("critical", "Critical"), ("high", "High"), ("medium", "Medium"), ("low", "Low"))
@@ -16,3 +19,6 @@ class Alert(models.Model):
     patient_id = models.UUIDField()
     severity = models.CharField(max_length=20, choices=SEVERITIES)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "monitoring_alerts"

@@ -11,6 +11,9 @@ class Center(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATES, default="pending_validation")
 
+    class Meta:
+        db_table = "centers"
+
 
 class Professional(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -19,6 +22,9 @@ class Professional(models.Model):
     available = models.BooleanField(default=True)
     current_load = models.PositiveSmallIntegerField(default=0)
 
+    class Meta:
+        db_table = "professionals"
+
 
 class Device(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -26,3 +32,6 @@ class Device(models.Model):
     device_type = models.CharField(max_length=50)
     registered_by = models.UUIDField()
     active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "devices"

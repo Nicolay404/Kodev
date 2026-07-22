@@ -228,3 +228,26 @@ De acuerdo a las últimas actualizaciones de la arquitectura (Fase 3 / v4.0), la
 El contenedor `notification-service` atiende HTTP en el puerto interno `8012`; `notification-consumer` recibe eventos y `notification-worker` los procesa. Nginx publica la bandeja en `GET /api/notifications/` y permite marcar entradas mediante `PATCH /api/notifications/{id}/read/`.
 
 Las entradas viven en Redis por 24 horas, con un máximo de 100 por usuario. Las dependencias nuevas del servicio son `djangorestframework==3.15.2`, `PyJWT==2.8.0`, `cryptography==42.0.5` y `gunicorn==21.2.0`; Docker las instala al reconstruir la imagen.
+
+## Backend - levantar el entorno con Supabase
+
+Supabase se usa como PostgreSQL administrado. El sistema no delega el login a Supabase Auth: `auth-service` lee `auth_db.auth_user`, valida el hash Django y emite los JWT RS256 definidos por la arquitectura.
+
+1. Crea `samr/.env` con `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`. No copies esos valores a archivos versionados.
+2. Para una conexión directa de Supabase, Docker Desktop debe tener salida IPv6. El override habilita IPv6 en `samr-net` y fuerza SSL.
+3. Inicia desde `samr/`:
+
+   ```bash
+   docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml up -d --build
+   ```
+
+4. Verifica el inicializador y los servicios:
+
+   ```bash
+   docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml ps -a
+   docker compose --env-file .env -f docker-compose.yml -f docker-compose.supabase.yml logs supabase-init
+   ```
+
+`supabase-init` crea idempotentemente los once schemas documentados. Cada servicio configura `DB_SCHEMA_MODE=schema`, su `DB_SCHEMA` exclusivo, `DB_SSLMODE=require` y adopta tablas existentes mediante `migrate --fake-initial --noinput`. No borres schemas ni ejecutes `down -v` para resolver problemas de conexión.
+
+Para volver al PostgreSQL local se omite `docker-compose.supabase.yml` y se usan los valores locales de `.env.example`.

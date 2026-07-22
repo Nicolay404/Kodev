@@ -51,14 +51,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
+DATABASE_OPTIONS = {}
+db_sslmode = os.environ.get('DB_SSLMODE')
+if db_sslmode:
+    DATABASE_OPTIONS['sslmode'] = db_sslmode
+if os.environ.get('DB_SCHEMA_MODE', 'database') == 'schema':
+    db_schema = os.environ.get('DB_SCHEMA', '')
+    if not db_schema or not db_schema.replace('_', '').isalnum():
+        raise ValueError('DB_SCHEMA must contain only letters, numbers, and underscores')
+    DATABASE_OPTIONS['options'] = f'-c search_path={db_schema},public'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'evaluacion_db'),
-        'USER': 'samr',
+        'USER': os.environ.get('DB_USER', 'samr'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'samr_postgres_password'),
         'HOST': os.environ.get('DB_HOST', 'postgres'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'OPTIONS': DATABASE_OPTIONS,
     }
 }
 

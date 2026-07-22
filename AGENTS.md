@@ -643,3 +643,15 @@ volumes: [pgdata]
 - `docker-compose.yml` dejó de sobrescribir el origen con el puerto histórico `3000` y ahora propaga `BFF_ALLOWED_ORIGINS`, con fallback coherente a Vite `5173`.
 - El entorno se verificó con frontend HTTP 200, BFF HTTP 200, preflight real desde Vite HTTP 200 y `notification-service` saludable.
 - Vite se levantó en un contenedor Node aislado con el repositorio montado en solo lectura; como el `package-lock.json` fusionado no admite `npm ci`, la resolución con `npm install` permanece únicamente dentro del contenedor y no modifica el frontend.
+
+## 2026-07-22 — Persistencia backend en Supabase
+
+- Se confirmó que el archivo de entorno proporcionado usa la conexión PostgreSQL directa de Supabase y que el host Windows dispone de conectividad IPv6.
+- La integración conservará el modo PostgreSQL local y añadirá un modo Compose explícito para Supabase, con SSL requerido y red Docker IPv6.
+- Los once dominios persistentes compartirán la base `postgres` únicamente a nivel de servidor y permanecerán aislados mediante los schemas documentados `auth_db`, `patient_db`, `solicitud_db`, `monitoring_db`, `evaluacion_db`, `teleconsult_db`, `emergency_db`, `cierre_db`, `historial_db`, `audit_db` y `admin_db`.
+- Las credenciales se consumirán desde un archivo local ignorado por Git; ningún secreto se incorporará al repositorio ni a la documentación.
+- Supabase ya contenía los once schemas, las veintiuna tablas canónicas y datos del MVP; se inspeccionaron únicamente metadatos y conteos antes de migrar.
+- Los modelos y migraciones iniciales declaran ahora los `db_table` documentados; `auth_user.password_hash`, los arreglos PostgreSQL de paciente/solicitud y la ausencia de `last_login` se mapearon sin alterar las filas existentes.
+- Los once servicios aplicaron `migrate --fake-initial`: cada migración inicial de dominio se marcó como adoptada y las tablas auxiliares de Django quedaron dentro del schema propietario.
+- La conexión efectiva de `auth-service` quedó verificada sobre la base `postgres`, schema `auth_db` y SSL activo; el ORM conserva los seis usuarios existentes.
+- Se detectó una cuenta legada con rol `pacient` y contraseña fuera del formato Django. No se corrigió ni se restableció automáticamente porque las credenciales y la intención de esa fila no están documentadas.

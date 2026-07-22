@@ -10,6 +10,9 @@ class Evaluacion(models.Model):
     fuentes_rag = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "evaluaciones_riesgo"
+
 
 class Matching(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -18,8 +21,14 @@ class Matching(models.Model):
     center_id = models.UUIDField()
     score = models.DecimalField(max_digits=5, decimal_places=2)
 
+    class Meta:
+        db_table = "matchings"
+
 
 class AvailableCenterCache(models.Model):
     center_id = models.UUIDField(primary_key=True)
     nombre = models.CharField(max_length=255)
     disponible = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "centros_disponibles_cache"
