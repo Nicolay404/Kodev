@@ -17,6 +17,7 @@
           "required": [
             "evaluacion_id",
             "solicitud_id",
+            "patient_id",
             "nivel_riesgo",
             "fuentes_rag"
           ]

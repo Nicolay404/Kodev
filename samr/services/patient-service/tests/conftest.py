@@ -39,7 +39,7 @@ def user_id():
 def valid_jwt(rsa_keys, user_id):
     payload = {
         "usuario_id": str(user_id), "email": "test@patient.com", "rol": "patient",
-        "type": "access", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15),
+        "type": "access", "iss": "samr-auth-service", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15),
     }
     return jwt.encode(payload, rsa_keys[0], algorithm="RS256")
 

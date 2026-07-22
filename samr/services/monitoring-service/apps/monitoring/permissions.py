@@ -9,7 +9,7 @@ def verify_jwt(token):
     try:
         with open(settings.JWT_PUBLIC_KEY_PATH, "rb") as key_file:
             key = serialization.load_pem_public_key(key_file.read())
-        return jwt.decode(token, key, algorithms=["RS256"])
+        return jwt.decode(token, key, algorithms=["RS256"], issuer="samr-auth-service")
     except (OSError, jwt.InvalidTokenError) as exc:
         raise AuthenticationFailed("Token inválido") from exc
 

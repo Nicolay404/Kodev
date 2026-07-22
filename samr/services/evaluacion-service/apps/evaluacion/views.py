@@ -36,7 +36,7 @@ class MatchingView(APIView):
         serializer = MatchingRequestSerializer(data=request.data); serializer.is_valid(raise_exception=True)
         professional_id = request.user.id if request.user.rol == "professional" else serializer.validated_data.get("professional_id")
         if not professional_id: return Response({"professional_id": ["Obligatorio para administradores."]}, status=400)
-        center = find_best_center()
+        center = find_best_center(serializer.validated_data.get("center_id"))
         if not center:
             publicar_evento("matching.fallido", {"evaluacion_id": str(evaluacion.id), "reason": "no_available_center"})
             return Response({"error": "No hay centros disponibles"}, status=409)

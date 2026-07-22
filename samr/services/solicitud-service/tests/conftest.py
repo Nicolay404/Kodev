@@ -32,7 +32,7 @@ def patient_id():
 
 
 def _jwt(private_key, role, user_id):
-    return jwt.encode({"usuario_id": str(user_id), "email": f"{role}@test.com", "rol": role, "type": "access", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)}, private_key, algorithm="RS256")
+    return jwt.encode({"usuario_id": str(user_id), "email": f"{role}@test.com", "rol": role, "type": "access", "iss": "samr-auth-service", "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)}, private_key, algorithm="RS256")
 
 
 @pytest.fixture

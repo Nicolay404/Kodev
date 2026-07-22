@@ -379,6 +379,97 @@ volumes: [pgdata]
 
 # Registro de trabajo de agentes
 
+## 2026-07-21 — Redacción de secretos en auditoría
+
+- `audit-service` redacta recursivamente contraseñas, encabezados y tokens antes de persistir eventos, incluido el token temporal de recuperación.
+- La trazabilidad conserva tipo, actor y metadatos no sensibles sin convertir el registro inmutable en un almacén de credenciales.
+
+## 2026-07-21 — Trigger sobre la tabla ORM efectiva
+
+- El trigger append-only apunta a `audit_app_auditlog`, nombre efectivo derivado del `AppConfig.label`; la prueba de migración PostgreSQL impidió aplicar la regla sobre un nombre inferido incorrecto.
+
+## 2026-07-21 — Dependencia de migración de auditoría
+
+- La segunda migración referencia el `AppConfig.label` real `audit_app`; la suite detectó y corrigió la dependencia nominal antes de aplicarla al clúster persistente.
+
+## 2026-07-21 — Recuperación compatible con el modelo de identidad
+
+- La recuperación de contraseña consulta únicamente campos existentes en el `User` aprobado; se eliminó la referencia a `is_active`, que no forma parte del modelo SAMR y fue detectada por la suite aislada.
+
+## 2026-07-21 — Detalle protegido de emergencia
+
+- Se añadió la lectura individual de una emergencia con su guía ya serializada; el paciente solo puede consultar las propias y el personal clínico conserva la visibilidad operativa.
+- El endpoint completa el recorrido lista → detalle → despacho descrito por UX sin modificar el protocolo ni la guía simulada.
+
+## 2026-07-21 — Una sola fuente de esquema PostgreSQL
+
+- `init-db.sh` vuelve a su responsabilidad idempotente de crear exactamente las 11 bases; las tablas pertenecen exclusivamente a las migraciones versionadas de cada servicio.
+- Se eliminó la creación paralela de tablas DDL con nombres y columnas incompatibles con los modelos Django, que en un volumen nuevo habría producido dos estructuras distintas por dominio.
+- La inmutabilidad de auditoría permanece a nivel de motor mediante la migración propia de `audit-service`, no sobre una tabla desconectada del ORM.
+
+## 2026-07-21 — WebSocket de monitoreo para UUID de paciente
+
+- La ruta WebSocket dejó de exigir un entero y acepta el UUID usado por todos los modelos y eventos del proyecto.
+- El paciente puede suscribirse exclusivamente a su propio canal; los roles clínicos autorizados conservan el acceso operativo existente.
+
+## 2026-07-21 — Consentimiento previo a evaluación IA
+
+- `evaluacion-service` consulta por M2M el resumen del paciente y solo ejecuta la evaluación simulada cuando `consent_ai=True`; fallos transitorios se reintentan con Celery hasta tres veces.
+- Los perfiles nuevos usan el mismo UUID del usuario autenticado como `Patient.id`, manteniendo coherentes los `patient_id` que circulan por los servicios aislados sin añadir una relación cross-database.
+- La ausencia de perfil o consentimiento detiene el procesamiento con `consent_required` y no publica decisiones de IA.
+
+## 2026-07-21 — Dashboard BFF diferenciado por rol
+
+- El BFF utiliza el claim verificado `rol` para agregar únicamente recursos útiles a paciente, profesional, enfermería, administración de centro, administración SAMR o delegado DPD.
+- El dashboard del paciente incorpora solicitudes, monitoreo propio, emergencias, teleconsultas y notificaciones; los demás roles dejan de generar llamadas incompatibles a `/patients/me/`.
+- Se mantiene el principio Frontend → BFF → Gateway y el BFF continúa sin persistencia ni lógica de negocio.
+
+## 2026-07-21 — Auditoría DPD consultable e inmutable
+
+- La consulta DPD admite filtros por evento, actor y fechas, además de paginación acotada a 100 registros.
+- Las revisiones ya son append-only y conservan su historial; el campo `review` sigue exponiendo la revisión más reciente por compatibilidad.
+- `audit_log` bloquea actualización y borrado en ORM y mediante trigger PostgreSQL, cerrando la brecha de inmutabilidad señalada por persistencia y UX.
+
+## 2026-07-21 — Historial clínico consolidado del MVP
+
+- `historial-interop-service` ahora consolida de forma idempotente solicitudes, riesgos, asignaciones, teleconsultas, emergencias y cierres, no únicamente `caso.cerrado`.
+- Se corrigió `riesgo.evaluado` para conservar `patient_id`; esto evita que el flujo crítico hacia `emergency-service` falle al intentar identificar al paciente.
+- Profesionales y enfermería pueden anexar notas clínicas al JSONB aprobado, con autor, fecha e invalidación inmediata del Bundle FHIR cacheado.
+
+## 2026-07-21 — Bandeja de notificaciones Redis
+
+- `notification-service` expone la API JWT de listado y marcado como leído en `:8012`, manteniendo Redis como única persistencia y TTL de 24 horas según la arquitectura.
+- El adaptador MVP conserva el despacho simulado por log y almacena cada evento dirigido por `usuario_id`, `patient_id` o `professional_id`, con límite de 100 notificaciones por destinatario.
+- El proceso HTTP queda separado del consumidor RabbitMQ y del worker Celery para no mezclar responsabilidades de ejecución.
+
+## 2026-07-21 — Gestión de contraseña para el MVP
+
+- `auth-service` incorpora cambio autenticado de contraseña y recuperación con respuesta no enumerativa, token RS256 de 15 minutos y validación contra la huella del hash vigente.
+- El token de recuperación queda inutilizable después del primer cambio sin añadir tablas fuera del esquema aprobado.
+- Se añadió `auth.password_reset_requested` al catálogo versionado y al adaptador de notificación simulado, listo para sustituir el despacho `log` por un proveedor real.
+
+## 2026-07-21 — Verificación Zero Trust del emisor JWT
+
+- Los diez servicios que validan JWT con la clave pública ahora exigen también `iss=samr-auth-service`, igual que Auth y BFF.
+- Se cerró la aceptación transversal de tokens RS256 de un emisor distinto sin alterar la firma, vigencia, tipo de token ni RBAC existentes.
+
+## 2026-07-21 — Lecturas operativas de monitoreo y administración M4
+
+- Se habilitó al paciente para consultar exclusivamente sus propias alertas y signos vitales; el personal autorizado conserva la consulta operativa y puede filtrar signos por paciente.
+- Se añadieron listados y detalles backend de centros para `system_admin`, y de dispositivos para el administrador o el paciente propietario, reutilizando los esquemas aprobados.
+- El matching permite seleccionar opcionalmente un `center_id` que debe estar disponible; si se omite conserva la regla determinista del MVP.
+
+## 2026-07-21 — Ciclo completo de teleconsulta M3
+
+- Se añadieron consulta de sesiones por actor, detalle protegido y cierre exclusivo por el profesional asignado usando los campos ya aprobados de `teleconsults`.
+- El cierre persiste diagnóstico, recomendación opcional, estado y fecha, y publica `teleconsult.closed` con el contrato mínimo que necesita `cierre-caso-service` para abrir el caso clínico.
+- El paciente ya puede descubrir su `room_token` mediante la lista o el detalle de sus propias sesiones, sin ampliar el acceso a sesiones ajenas.
+
+## 2026-07-21 — Consulta del ciclo de solicitudes del paciente
+
+- Se completó el contrato backend del MVP para que un paciente pueda listar sus solicitudes y consultar su estado/detalle sin exponer solicitudes de otros usuarios.
+- Se conservaron el endpoint de creación y el aislamiento por `patient_id`; no se añadieron entidades ni dependencias.
+
 ## 2026-07-20 — Documentación operativa final del backend
 
 - Se anexó a `README.md` y `samr/ONBOARDING.md` el arranque automático vigente, la topología de workers/consumidores y las dependencias nuevas (`celery`/`redis`).
@@ -530,3 +621,15 @@ volumes: [pgdata]
 - **Resolución de problemas de Tipado Estricto (TypeScript):** Se corrigieron errores de compilación causados por la bandera `verbatimModuleSyntax` en el `tsconfig.json`. Se ajustaron las importaciones de tipos de TypeScript (añadiendo el prefijo `type` en interfaces como `Patient` y `TeleconsultRoom`) para garantizar la limpieza del AST durante la compilación.
 - **Corrección de la Codificación Markdown:** Se ejecutó un script de reemplazo global sobre 30 archivos `.md` de la documentación arquitectónica para reemplazar los guiones largos y codificaciones corruptas (`ÔÇö`) por guiones estándar ASCII (`-`), resolviendo fallos visuales de lectura en repositorios como GitHub/GitLab.
 - **Validación Final de Compilación (Build):** Se ejecutó `npm run build`, pasando estrictamente el compilador de TypeScript (`tsc -b`). Se generaron exitosamente los estáticos optimizados con Vite sin advertencias de dependencias ni de código, dejando la rama `ui/frontend-app` 100% lista para despliegue y unificación con la rama `main`.
+
+## 2026-07-21 — Cierre integral del backend MVP tras la alineación UX
+
+- Se completaron los contratos backend faltantes usados por `ux-deliverables`: consulta propia de solicitudes, vistas de signos vitales y alertas, ciclo de teleconsulta, detalle de emergencias, catálogo administrativo, notas de historial, recuperación de contraseña y bandeja de notificaciones Redis.
+- Se amplió el BFF por rol sin modificar el frontend: cada perfil recibe únicamente las agregaciones autorizadas y el JWT se verifica con firma RS256, emisor y tipo de token.
+- La evaluación de riesgo ahora respeta el consentimiento de IA consultado por M2M, acepta centro opcional validado y conserva las reglas clínicas como adaptadores MVP reemplazables.
+- El historial consolida idempotentemente los eventos clínicos documentados de M1–M3; auditoría filtra, redacta secretos, conserva revisiones históricas y aplica un trigger PostgreSQL append-only sobre su evidencia.
+- `notification-service` expone una bandeja HTTP efímera respaldada por Redis y mantiene el despacho externo como simulación explícita, preparado para sustituir el adaptador por FCM u otro proveedor real.
+- Se eliminó del inicializador PostgreSQL el DDL manual que competía con el ORM: las once bases se crean de forma idempotente y las migraciones Django son la única fuente de tablas.
+- Se ejecutaron las 13 suites backend en imágenes Docker: **74 pruebas superadas**. Los 22 contratos JSON Schema son válidos, Nginx valida su configuración y los 32 procesos de Compose quedaron saludables.
+- Un smoke test real recorrió registro, consentimiento, solicitud, riesgo, matching, teleconsulta, cierre, historial, notificaciones y BFF; consolidó seis eventos clínicos. Un segundo escenario confirmó que la evaluación se bloquea cuando `consent_ai=false`.
+- Se reconstruyeron también las imágenes de workers y consumidores declaradas mediante `extends`, evitando que Compose reutilice imágenes asíncronas antiguas después de cambios en los servicios base.

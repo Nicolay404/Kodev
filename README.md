@@ -106,3 +106,9 @@ En un volumen PostgreSQL nuevo, `scripts/init-db.sh` crea automáticamente las 1
 Compose inicia consumidores separados y workers Celery con cola propia para solicitud, evaluación, historial, auditoría, administración y notificaciones. La concurrencia local es 1 por worker para limitar recursos del MVP.
 
 Dependencias backend añadidas por estos módulos: `celery==5.3.6` en `admin-integracion-service`, y `redis==5.0.3` en `solicitud-service` e `historial-interop-service`. Docker las instala desde cada `requirements.txt`.
+
+## Backend - bandeja de notificaciones del MVP
+
+`notification-service` expone `GET /api/notifications/` y `PATCH /api/notifications/{id}/read/` a través de Nginx. La bandeja usa únicamente Redis, conserva hasta 100 entradas por usuario durante 24 horas y requiere un JWT access emitido por `samr-auth-service`.
+
+El proceso HTTP, `notification-consumer` y `notification-worker` se ejecutan por separado. El backend externo continúa simulado con `MVP_NOTIFICATION_BACKEND=log`; la bandeja Redis permite probar el recorrido completo sin presentar el log como un envío FCM real.

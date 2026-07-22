@@ -5,7 +5,14 @@ from apps.monitoring.permissions import verify_jwt
 
 
 class MonitoringConsumer(AsyncWebsocketConsumer):
-    ALLOWED_ROLES = {"professional", "nurse", "center_admin", "system_admin"}
+    CLINICAL_ROLES = {"professional", "nurse", "center_admin", "system_admin"}
+
+    @classmethod
+    def can_monitor(cls, payload, patient_id):
+        role = payload.get("rol")
+        return role in cls.CLINICAL_ROLES or (
+            role == "patient" and str(payload.get("usuario_id")) == str(patient_id)
+        )
 
     async def connect(self):
         self.patient_id = self.scope["url_route"]["kwargs"]["patient_id"]
@@ -17,7 +24,7 @@ class MonitoringConsumer(AsyncWebsocketConsumer):
             payload = verify_jwt(token)
         except Exception:
             await self.close(code=4003); return
-        if payload.get("rol") not in self.ALLOWED_ROLES:
+        if not self.can_monitor(payload, self.patient_id):
             await self.close(code=4003); return
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()

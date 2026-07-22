@@ -13,3 +13,8 @@ class TeleconsultCreateSerializer(serializers.Serializer):
     patient_id = serializers.UUIDField()
     professional_id = serializers.UUIDField(required=False)
     emergency_id = serializers.UUIDField(required=False)
+
+
+class TeleconsultCloseSerializer(serializers.Serializer):
+    diagnosis = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    ai_recommendation = serializers.JSONField(required=False)

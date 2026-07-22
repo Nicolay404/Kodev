@@ -36,6 +36,7 @@ def _create_jwt(private_key, rol, user_id=None):
         'email': f'{rol}@test.com',
         'rol': rol,
         'type': 'access',
+        'iss': 'samr-auth-service',
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
     }
     return jwt.encode(payload, private_key, algorithm='RS256')

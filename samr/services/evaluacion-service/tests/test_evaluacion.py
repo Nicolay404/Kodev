@@ -25,19 +25,28 @@ class TestEvaluacionAPI:
     @patch("apps.evaluacion.views.publicar_evento")
     def test_matching(self, mock_publish, api_client, auth_jwt):
         evaluation = Evaluacion.objects.create(solicitud_id=uuid.uuid4(), nivel_riesgo="medio")
-        center = AvailableCenterCache.objects.create(center_id=uuid.uuid4(), nombre="Centro MVP")
+        AvailableCenterCache.objects.create(center_id=uuid.uuid4(), nombre="Centro A")
+        center = AvailableCenterCache.objects.create(center_id=uuid.uuid4(), nombre="Centro seleccionado")
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth_jwt}")
-        response = api_client.post(reverse("matching", kwargs={"evaluacion_id": evaluation.id}), {"patient_id": str(uuid.uuid4())}, format="json")
+        response = api_client.post(reverse("matching", kwargs={"evaluacion_id": evaluation.id}), {"patient_id": str(uuid.uuid4()), "center_id": str(center.center_id)}, format="json")
         assert response.status_code == 201
         assert Matching.objects.get().center_id == center.center_id
 
     @patch("tasks.procesar_solicitud.publicar_evento")
-    def test_process_validated_request(self, mock_publish):
+    @patch("tasks.procesar_solicitud.has_ai_consent", return_value=True)
+    def test_process_validated_request(self, mock_consent, mock_publish):
         solicitud_id = uuid.uuid4()
-        result = procesar_solicitud_validada({"solicitud_id": str(solicitud_id), "sintomas": ["síntoma de prueba"]})
+        patient_id = uuid.uuid4()
+        result = procesar_solicitud_validada({"solicitud_id": str(solicitud_id), "patient_id": str(patient_id), "sintomas": ["síntoma de prueba"]})
         assert uuid.UUID(result)
         assert Evaluacion.objects.get().nivel_riesgo == "medio"
         assert mock_publish.call_count == 2
+        assert mock_publish.call_args_list[0].args[1]["patient_id"] == str(patient_id)
+
+    @patch("tasks.procesar_solicitud.has_ai_consent", return_value=False)
+    def test_does_not_evaluate_without_ai_consent(self, mock_consent):
+        result = procesar_solicitud_validada({"solicitud_id": str(uuid.uuid4()), "patient_id": str(uuid.uuid4()), "sintomas": ["dolor"]})
+        assert result == "consent_required" and Evaluacion.objects.count() == 0
 
     @patch("apps.evaluacion.views.publicar_evento")
     def test_matching_without_center(self, mock_publish, api_client, auth_jwt):
