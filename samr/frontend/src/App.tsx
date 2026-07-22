@@ -4,6 +4,8 @@ import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Login } from './features/auth/Login';
+import { Register } from './features/auth/Register';
+import { ForgotPassword } from './features/auth/ForgotPassword';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { AlertsList } from './features/monitoring/AlertsList';
 import { TeleconsultRoom } from './features/teleconsult/TeleconsultRoom';
@@ -12,10 +14,14 @@ import { EmergenciesList } from './features/emergency/EmergenciesList';
 import { NotificationsList } from './features/notifications/NotificationsList';
 import { AdminPanel } from './features/admin/AdminPanel';
 import { AuditLogList } from './features/audit/AuditLogList';
+import { Chatbot } from './features/chat/Chatbot';
+import { HistorialClinico } from './features/historial/HistorialClinico';
+import { CierreCasoList } from './features/cierre/CierreCasoList';
+import { Perfil } from './features/profile/Perfil';
 
 const CLINICAL_ROLES = ['professional', 'nurse', 'center_admin', 'system_admin'] as const;
 const TELECONSULT_ROLES = ['professional', 'center_admin', 'system_admin'] as const;
-const EMERGENCY_ROLES = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'] as const;
+const PATIENT_AND_CLINICAL_ROLES = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'] as const;
 
 function Unauthorized() {
   return (
@@ -33,6 +39,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Protected Routes */}
@@ -45,12 +53,45 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="profile" element={<Perfil />} />
             <Route path="notifications" element={<NotificationsList />} />
+            <Route
+              path="help"
+              element={
+                <ProtectedRoute allowedRoles={['patient']}>
+                  <Chatbot />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="emergencies"
               element={
-                <ProtectedRoute allowedRoles={[...EMERGENCY_ROLES]}>
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
                   <EmergenciesList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="historial"
+              element={
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                  <HistorialClinico />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="historial/:patientId"
+              element={
+                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                  <HistorialClinico />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="cierre-casos"
+              element={
+                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                  <CierreCasoList />
                 </ProtectedRoute>
               }
             />

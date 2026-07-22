@@ -1,4 +1,4 @@
-import { Menu, LogOut, User, Bell } from "lucide-react";
+import { Menu, LogOut, User, Bell, Settings } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
@@ -64,6 +64,13 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                   <p className="text-xs text-gray-500">{user.role}</p>
                 </div>
               )}
+              <DropdownMenu.Item
+                onSelect={() => navigate('/profile')}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer outline-none"
+              >
+                <Settings className="w-4 h-4" />
+                Mi Cuenta
+              </DropdownMenu.Item>
               <DropdownMenu.Item
                 onSelect={handleLogout}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-error-600 hover:bg-error-50 cursor-pointer outline-none"

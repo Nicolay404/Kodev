@@ -5,7 +5,8 @@ import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, AlertTriangle } from 'lu
 import toast from 'react-hot-toast';
 import { Button } from '../../components/ui/Button';
 import { useWebRTC } from '../../hooks/useWebRTC';
-import { createTeleconsultSession, type TeleconsultSession } from '../../services/teleconsultSessionService';
+import { createTeleconsultSession, closeTeleconsultSession, type TeleconsultSession } from '../../services/teleconsultSessionService';
+import { useAuthStore } from '../../store/authStore';
 
 export function TeleconsultRoom() {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export function TeleconsultRoom() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [confirmHangupOpen, setConfirmHangupOpen] = useState(false);
+  const [diagnosis, setDiagnosis] = useState('');
+  const [closing, setClosing] = useState(false);
+  const role = useAuthStore((state) => state.user?.role);
 
   const { isConnected, error, remoteStream, attachLocalStream } = useWebRTC({
     roomToken: session?.room_token ?? null,
@@ -77,10 +81,20 @@ export function TeleconsultRoom() {
     }
   };
 
-  const executeHangup = () => {
+  const executeHangup = async () => {
+    if (role === 'professional' && diagnosis.trim() && session) {
+      setClosing(true);
+      try {
+        await closeTeleconsultSession(session.id, diagnosis.trim());
+      } catch {
+        // El interceptor de gatewayClient ya muestra el toast de error
+      } finally {
+        setClosing(false);
+      }
+    }
     localStream?.getTracks().forEach((track) => track.stop());
     setConfirmHangupOpen(false);
-    navigate('/');
+    navigate('/cierre-casos');
   };
 
   if (!session) {
@@ -219,15 +233,31 @@ export function TeleconsultRoom() {
               <Dialog.Title className="text-lg font-bold text-gray-900 mb-2">
                 Finalizar Teleconsulta
               </Dialog.Title>
-              <Dialog.Description className="text-sm text-gray-500 mb-6">
-                ¿Estás seguro que deseas terminar esta llamada?
+              <Dialog.Description className="text-sm text-gray-500 mb-4">
+                {role === 'professional'
+                  ? 'Registra el diagnóstico para cerrar formalmente la teleconsulta. Sin diagnóstico, la sesión queda abierta.'
+                  : '¿Estás seguro que deseas terminar esta llamada?'}
               </Dialog.Description>
+              {role === 'professional' && (
+                <textarea
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  rows={3}
+                  placeholder="Diagnóstico..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-4"
+                />
+              )}
               <div className="flex gap-3 w-full">
                 <Button variant="outline" className="flex-1" onClick={() => setConfirmHangupOpen(false)}>
                   Cancelar
                 </Button>
-                <Button variant="primary" className="flex-1 bg-error-600 hover:bg-error-700 focus:ring-error-500 border-error-600 hover:border-error-700" onClick={executeHangup}>
-                  Terminar Llamada
+                <Button
+                  variant="primary"
+                  className="flex-1 bg-error-600 hover:bg-error-700 focus:ring-error-500 border-error-600 hover:border-error-700"
+                  onClick={executeHangup}
+                  disabled={closing}
+                >
+                  {closing ? 'Cerrando...' : 'Terminar Llamada'}
                 </Button>
               </div>
             </div>

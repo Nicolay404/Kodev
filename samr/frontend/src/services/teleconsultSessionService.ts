@@ -21,3 +21,13 @@ export const createTeleconsultSession = async (patientId: string): Promise<Telec
   const { data } = await gatewayClient.post<TeleconsultSession>('/api/teleconsult/', { patient_id: patientId });
   return data;
 };
+
+/**
+ * POST /api/teleconsult/<id>/close/ — exclusivo del profesional asignado a la
+ * sesión. Publica `teleconsult.closed`, que es lo que abre el Caso en
+ * cierre-caso-service para poder cerrarlo después con notas clínicas.
+ */
+export const closeTeleconsultSession = async (sessionId: string, diagnosis: string): Promise<TeleconsultSession> => {
+  const { data } = await gatewayClient.post<TeleconsultSession>(`/api/teleconsult/${sessionId}/close/`, { diagnosis });
+  return data;
+};

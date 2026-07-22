@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Calendar, AlertCircle, Link2 } from 'lucide-react';
+import { X, Calendar, AlertCircle, Link2, Users } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/authStore';
+import { useCreateMatching } from '../../hooks/useEvaluacion';
 import type { Evaluacion } from '../../services/dashboardService';
 
 interface ViewRequestModalProps {
@@ -22,8 +25,25 @@ const RISK_STYLE: Record<Evaluacion['nivel_riesgo'], string> = {
   bajo: 'bg-success-50 text-success-700 border-success-200',
 };
 
+const CAN_MATCH = ['professional', 'center_admin', 'system_admin'];
+
 export function ViewRequestModal({ evaluacion, onClose }: ViewRequestModalProps) {
+  const role = useAuthStore((state) => state.user?.role);
+  const [patientId, setPatientId] = useState('');
+  const [result, setResult] = useState<{ center_id: string; score: string } | null>(null);
+  const { mutate: match, isPending, error } = useCreateMatching();
+
   if (!evaluacion) return null;
+
+  const matchError = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+
+  const handleMatch = (e: React.FormEvent) => {
+    e.preventDefault();
+    match(
+      { evaluacionId: evaluacion.id, dto: { patient_id: patientId.trim() } },
+      { onSuccess: (m) => setResult({ center_id: m.center_id, score: m.score }) }
+    );
+  };
 
   return (
     <Dialog.Root open={!!evaluacion} onOpenChange={(open) => !open && onClose()}>
@@ -68,6 +88,36 @@ export function ViewRequestModal({ evaluacion, onClose }: ViewRequestModalProps)
             <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
               El nivel de riesgo es fijado por evaluacion-service y es inmutable — no existe endpoint para editarlo.
             </p>
+
+            {role && CAN_MATCH.includes(role) && (
+              <div className="pt-4 border-t border-gray-100 space-y-3">
+                <p className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-teal-600" /> Asignar Centro (Matching)
+                </p>
+                {result ? (
+                  <div className="bg-success-50 border border-success-100 rounded-lg p-3 text-success-700">
+                    Asignado — centro {result.center_id.slice(0, 8)}, score {result.score}
+                  </div>
+                ) : (
+                  <form onSubmit={handleMatch} className="space-y-2">
+                    <p className="text-xs text-gray-500">
+                      No hay un directorio de pacientes accesible — ingresa el ID (UUID) del paciente de esta solicitud.
+                    </p>
+                    <input
+                      value={patientId}
+                      onChange={(e) => setPatientId(e.target.value)}
+                      required
+                      placeholder="ID del paciente (UUID)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                    {matchError && <p className="text-xs text-error-600">{matchError}</p>}
+                    <Button type="submit" size="sm" className="w-full" disabled={isPending}>
+                      {isPending ? 'Asignando...' : 'Asignar centro automáticamente'}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
