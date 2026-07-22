@@ -40,7 +40,7 @@ class AlertView(APIView):
     def get(self, request):
         if request.user.rol == "patient":
             alerts = Alert.objects.filter(patient_id=request.user.id)
-        elif request.user.rol in {"professional", "nurse", "center_admin", "system_admin"}:
+        elif request.user.rol in {"professional", "nurse", "center_admin"}:
             alerts = Alert.objects.all()
         else:
             return Response({"error": "Permiso denegado"}, status=403)
@@ -55,7 +55,7 @@ class VitalSignView(APIView):
         readings = VitalSign.objects.all()
         if request.user.rol == "patient":
             readings = readings.filter(patient_id=request.user.id)
-        elif request.user.rol in {"professional", "nurse", "center_admin", "system_admin"}:
+        elif request.user.rol in {"professional", "nurse", "center_admin"}:
             patient_id = request.query_params.get("patient_id")
             if patient_id:
                 readings = readings.filter(patient_id=patient_id)

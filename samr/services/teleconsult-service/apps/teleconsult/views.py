@@ -22,12 +22,12 @@ class TeleconsultSessionView(APIView):
             sessions = sessions.filter(patient_id=request.user.id)
         elif request.user.rol == "professional":
             sessions = sessions.filter(professional_id=request.user.id)
-        elif request.user.rol not in {"center_admin", "system_admin"}:
+        elif request.user.rol != "center_admin":
             return Response({"error": "Permiso denegado"}, status=403)
         return Response(TeleconsultSessionSerializer(sessions.order_by("-id")[:50], many=True).data)
 
     def post(self, request):
-        if request.user.rol not in {"professional", "center_admin", "system_admin"}:
+        if request.user.rol not in {"professional", "center_admin"}:
             return Response({"error": "Permiso denegado"}, status=403)
         serializer = TeleconsultCreateSerializer(data=request.data); serializer.is_valid(raise_exception=True)
         professional_id = request.user.id if request.user.rol == "professional" else serializer.validated_data.get("professional_id")
@@ -48,7 +48,7 @@ class TeleconsultSessionDetailView(APIView):
         allowed = (
             (request.user.rol == "patient" and str(session.patient_id) == str(request.user.id))
             or (request.user.rol == "professional" and str(session.professional_id) == str(request.user.id))
-            or request.user.rol in {"center_admin", "system_admin"}
+            or request.user.rol == "center_admin"
         )
         if not allowed:
             return None, Response({"error": "Permiso denegado"}, status=403)

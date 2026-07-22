@@ -12,6 +12,8 @@ class RiesgoView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def get(self, request, solicitud_id):
+        if request.user.rol not in {"professional", "center_admin"}:
+            return Response({"error": "Permiso denegado"}, status=403)
         evaluacion = Evaluacion.objects.filter(solicitud_id=solicitud_id).first()
         return Response(EvaluacionSerializer(evaluacion).data) if evaluacion else Response({"error": "Evaluación no encontrada"}, status=404)
 
@@ -28,7 +30,7 @@ class MatchingView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def post(self, request, evaluacion_id):
-        if request.user.rol not in {"professional", "center_admin", "system_admin"}:
+        if request.user.rol not in {"professional", "center_admin"}:
             return Response({"error": "Permiso denegado"}, status=403)
         evaluacion = Evaluacion.objects.filter(id=evaluacion_id).first()
         if not evaluacion: return Response({"error": "Evaluación no encontrada"}, status=404)
@@ -51,4 +53,6 @@ class MisCasosView(APIView):
     def get(self, request):
         if request.user.rol == "patient":
             return Response([])
+        if request.user.rol not in {"professional", "center_admin"}:
+            return Response({"error": "Permiso denegado"}, status=403)
         return Response(EvaluacionSerializer(Evaluacion.objects.order_by("-created_at")[:50], many=True).data)

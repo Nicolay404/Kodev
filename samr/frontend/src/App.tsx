@@ -19,9 +19,14 @@ import { HistorialClinico } from './features/historial/HistorialClinico';
 import { CierreCasoList } from './features/cierre/CierreCasoList';
 import { Perfil } from './features/profile/Perfil';
 
-const CLINICAL_ROLES = ['professional', 'nurse', 'center_admin', 'system_admin'] as const;
-const TELECONSULT_ROLES = ['professional', 'center_admin', 'system_admin'] as const;
-const PATIENT_AND_CLINICAL_ROLES = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'] as const;
+// system_admin queda deliberadamente fuera de todos los grupos clínicos: su ámbito es
+// solo Administración (centros/dispositivos/FAQ), Notificaciones y Mi Cuenta.
+const EMERGENCY_ROLES = ['patient', 'professional', 'nurse', 'center_admin'] as const;
+const HISTORIAL_ROLES = ['patient', 'professional', 'nurse'] as const;
+const HISTORIAL_DETAIL_ROLES = ['professional', 'nurse'] as const;
+const CIERRE_CASO_ROLES = ['patient', 'professional', 'center_admin'] as const;
+const MONITORING_ROLES = ['professional', 'nurse', 'center_admin'] as const;
+const TELECONSULT_ROLES = ['professional', 'center_admin'] as const;
 
 function Unauthorized() {
   return (
@@ -66,7 +71,7 @@ function App() {
             <Route
               path="emergencies"
               element={
-                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...EMERGENCY_ROLES]}>
                   <EmergenciesList />
                 </ProtectedRoute>
               }
@@ -74,7 +79,7 @@ function App() {
             <Route
               path="historial"
               element={
-                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...HISTORIAL_ROLES]}>
                   <HistorialClinico />
                 </ProtectedRoute>
               }
@@ -82,7 +87,7 @@ function App() {
             <Route
               path="historial/:patientId"
               element={
-                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...HISTORIAL_DETAIL_ROLES]}>
                   <HistorialClinico />
                 </ProtectedRoute>
               }
@@ -90,7 +95,7 @@ function App() {
             <Route
               path="cierre-casos"
               element={
-                <ProtectedRoute allowedRoles={[...PATIENT_AND_CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...CIERRE_CASO_ROLES]}>
                   <CierreCasoList />
                 </ProtectedRoute>
               }
@@ -98,7 +103,7 @@ function App() {
             <Route
               path="monitoring"
               element={
-                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...MONITORING_ROLES]}>
                   <AlertsList />
                 </ProtectedRoute>
               }
@@ -106,7 +111,7 @@ function App() {
             <Route
               path="monitoring/:patientId"
               element={
-                <ProtectedRoute allowedRoles={[...CLINICAL_ROLES]}>
+                <ProtectedRoute allowedRoles={[...MONITORING_ROLES]}>
                   <MonitoringView />
                 </ProtectedRoute>
               }

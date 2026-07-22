@@ -14,7 +14,7 @@ from .services import compose_fhir_bundle, verify_sharing_consent
 
 
 def can_read(user, patient_id):
-    return (user.rol == "patient" and str(user.id) == str(patient_id)) or user.rol in {"professional", "nurse", "center_admin", "system_admin"}
+    return (user.rol == "patient" and str(user.id) == str(patient_id)) or user.rol in {"professional", "nurse"}
 
 
 class HistorialView(APIView):

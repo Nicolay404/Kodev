@@ -10,12 +10,17 @@ DEMO_USERS = {
     "paciente.juan@gmail.com": "patient",
     "paciente.maria@gmail.com": "patient",
     "dr.mendoza@samr-salud.gob.ec": "professional",
+    "enf.torres@samr-salud.gob.ec": "nurse",
+    "admin.centro@samr-salud.gob.ec": "center_admin",
     "admin.sistema@samr-salud.gob.ec": "system_admin",
 }
 
 
 class Command(BaseCommand):
-    help = "Restablece las cuentas demo existentes sin crear usuarios nuevos."
+    help = (
+        "Crea (si no existen) y restablece la contraseña de las cuentas demo del "
+        "MVP, una por cada rol, para pruebas locales."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -35,37 +40,30 @@ class Command(BaseCommand):
                 "La contraseña debe tener al menos 8 caracteres, una letra y un número."
             )
 
+        created, updated = 0, 0
         with transaction.atomic():
-            users = {
+            existing = {
                 user.email: user
                 for user in User.objects.select_for_update().filter(
                     email__in=DEMO_USERS
                 )
             }
-            missing_users = sorted(set(DEMO_USERS) - set(users))
-            if missing_users:
-                raise CommandError(
-                    "No se modificó ninguna cuenta. Faltan usuarios demo: "
-                    + ", ".join(missing_users)
-                )
-
             for email, role in DEMO_USERS.items():
-                user = users[email]
-                user.role = role
+                user = existing.get(email)
+                if user is None:
+                    user = User(email=email, role=role)
+                    created += 1
+                else:
+                    user.role = role
+                    updated += 1
                 user.set_password(password)
                 user.failed_attempts = 0
                 user.locked_until = None
-                user.save(
-                    update_fields=(
-                        "role",
-                        "password",
-                        "failed_attempts",
-                        "locked_until",
-                    )
-                )
+                user.save()
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Se restablecieron {len(DEMO_USERS)} cuentas demo existentes."
+                f"Cuentas demo listas: {created} creadas, {updated} restablecidas "
+                f"(total {len(DEMO_USERS)})."
             )
         )

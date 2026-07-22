@@ -14,6 +14,7 @@ export function TeleconsultRoom() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const [patientIdInput, setPatientIdInput] = useState('');
+  const [professionalIdInput, setProfessionalIdInput] = useState('');
   const [session, setSession] = useState<TeleconsultSession | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -33,7 +34,10 @@ export function TeleconsultRoom() {
     e.preventDefault();
     setCreating(true);
     try {
-      const created = await createTeleconsultSession(patientIdInput.trim());
+      const created = await createTeleconsultSession(
+        patientIdInput.trim(),
+        role === 'center_admin' ? professionalIdInput.trim() : undefined
+      );
       setSession(created);
     } catch {
       // El interceptor de gatewayClient ya muestra el toast de error
@@ -118,6 +122,19 @@ export function TeleconsultRoom() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
+          {role === 'center_admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ID del profesional a asignar</label>
+              <input
+                type="text"
+                required
+                value={professionalIdInput}
+                onChange={(e) => setProfessionalIdInput(e.target.value)}
+                placeholder="00000000-0000-0000-0000-000000000000"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={creating}>
             {creating ? 'Creando sesión...' : 'Crear sesión y unirse'}
           </Button>

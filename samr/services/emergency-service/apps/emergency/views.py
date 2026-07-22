@@ -23,7 +23,7 @@ class EmergencyListView(APIView):
     def get(self, request):
         query = Emergency.objects.order_by("-created_at")
         if request.user.rol == "patient": query = query.filter(patient_id=request.user.id)
-        elif request.user.rol not in {"professional", "nurse", "center_admin", "system_admin"}: return Response({"error": "Permiso denegado"}, status=403)
+        elif request.user.rol not in {"professional", "nurse", "center_admin"}: return Response({"error": "Permiso denegado"}, status=403)
         return Response(EmergencySerializer(query[:50], many=True).data)
     def post(self, request):
         if request.user.rol != "patient": return Response({"error": "Solo el paciente puede reportar su emergencia"}, status=403)
@@ -36,7 +36,7 @@ class EmergencyDispatchView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def post(self, request, emergency_id):
-        if request.user.rol not in {"professional", "nurse", "center_admin", "system_admin"}: return Response({"error": "Permiso denegado"}, status=403)
+        if request.user.rol not in {"professional", "nurse", "center_admin"}: return Response({"error": "Permiso denegado"}, status=403)
         emergency = Emergency.objects.filter(id=emergency_id).first()
         if not emergency: return Response({"error": "Emergencia no encontrada"}, status=404)
         if emergency.status != "pending": return Response({"error": "La emergencia no está pendiente"}, status=400)
@@ -55,6 +55,6 @@ class EmergencyDetailView(APIView):
             return Response({"error": "Emergencia no encontrada"}, status=404)
         if request.user.rol == "patient" and str(emergency.patient_id) != str(request.user.id):
             return Response({"error": "Permiso denegado"}, status=403)
-        if request.user.rol not in {"patient", "professional", "nurse", "center_admin", "system_admin"}:
+        if request.user.rol not in {"patient", "professional", "nurse", "center_admin"}:
             return Response({"error": "Permiso denegado"}, status=403)
         return Response(EmergencySerializer(emergency).data)

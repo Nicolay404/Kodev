@@ -25,11 +25,12 @@ const RISK_STYLE: Record<Evaluacion['nivel_riesgo'], string> = {
   bajo: 'bg-success-50 text-success-700 border-success-200',
 };
 
-const CAN_MATCH = ['professional', 'center_admin', 'system_admin'];
+const CAN_MATCH = ['professional', 'center_admin'];
 
 export function ViewRequestModal({ evaluacion, onClose }: ViewRequestModalProps) {
   const role = useAuthStore((state) => state.user?.role);
   const [patientId, setPatientId] = useState('');
+  const [professionalId, setProfessionalId] = useState('');
   const [result, setResult] = useState<{ center_id: string; score: string } | null>(null);
   const { mutate: match, isPending, error } = useCreateMatching();
 
@@ -40,7 +41,13 @@ export function ViewRequestModal({ evaluacion, onClose }: ViewRequestModalProps)
   const handleMatch = (e: React.FormEvent) => {
     e.preventDefault();
     match(
-      { evaluacionId: evaluacion.id, dto: { patient_id: patientId.trim() } },
+      {
+        evaluacionId: evaluacion.id,
+        dto: {
+          patient_id: patientId.trim(),
+          ...(role === 'center_admin' ? { professional_id: professionalId.trim() } : {}),
+        },
+      },
       { onSuccess: (m) => setResult({ center_id: m.center_id, score: m.score }) }
     );
   };
@@ -110,6 +117,15 @@ export function ViewRequestModal({ evaluacion, onClose }: ViewRequestModalProps)
                       placeholder="ID del paciente (UUID)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
+                    {role === 'center_admin' && (
+                      <input
+                        value={professionalId}
+                        onChange={(e) => setProfessionalId(e.target.value)}
+                        required
+                        placeholder="ID del profesional a asignar (UUID)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                    )}
                     {matchError && <p className="text-xs text-error-600">{matchError}</p>}
                     <Button type="submit" size="sm" className="w-full" disabled={isPending}>
                       {isPending ? 'Asignando...' : 'Asignar centro automáticamente'}

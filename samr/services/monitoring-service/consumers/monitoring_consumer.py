@@ -5,7 +5,7 @@ from apps.monitoring.permissions import verify_jwt
 
 
 class MonitoringConsumer(AsyncWebsocketConsumer):
-    CLINICAL_ROLES = {"professional", "nurse", "center_admin", "system_admin"}
+    CLINICAL_ROLES = {"professional", "nurse", "center_admin"}
 
     @classmethod
     def can_monitor(cls, payload, patient_id):

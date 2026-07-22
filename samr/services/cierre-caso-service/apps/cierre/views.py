@@ -31,7 +31,7 @@ class VerificarCasoView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def get(self, request, caso_id):
-        if request.user.rol not in {"professional", "center_admin", "system_admin"}: return Response({"error": "Permiso denegado"}, status=403)
+        if request.user.rol not in {"professional", "center_admin"}: return Response({"error": "Permiso denegado"}, status=403)
         case = Caso.objects.filter(id=caso_id).first()
         return Response({"error": "Caso no encontrado"}, status=404) if not case else Response({"caso_id": str(case.id), "status": case.status, **verify_case(case)})
 
@@ -40,5 +40,11 @@ class MisCasosView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        cases = Caso.objects.filter(patient_id=request.user.id).order_by("-closed_at") if request.user.rol == "patient" else Caso.objects.order_by("-closed_at")
+        rol = request.user.rol
+        if rol == "patient":
+            cases = Caso.objects.filter(patient_id=request.user.id).order_by("-closed_at")
+        elif rol in {"professional", "center_admin"}:
+            cases = Caso.objects.order_by("-closed_at")
+        else:
+            return Response({"error": "Permiso denegado"}, status=403)
         return Response(CasoSerializer(cases[:50], many=True).data)

@@ -15,7 +15,7 @@ export interface MatchingDto {
 }
 
 /**
- * POST /api/evaluacion/matching/<evaluacion_id>/ — professional/center_admin/system_admin.
+ * POST /api/evaluacion/matching/<evaluacion_id>/ — professional/center_admin.
  * No hay endpoint accesible desde el navegador para listar centros disponibles
  * (CentrosDisponiblesView usa token de servicio, no JWT de usuario) — si no se
  * envía `center_id`, el backend auto-asigna el mejor centro disponible.

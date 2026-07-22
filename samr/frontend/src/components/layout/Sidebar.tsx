@@ -8,9 +8,13 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const CLINICAL_ROLES: Role[] = ['professional', 'nurse', 'center_admin', 'system_admin'];
-const TELECONSULT_ROLES: Role[] = ['professional', 'center_admin', 'system_admin'];
-const PATIENT_AND_CLINICAL_ROLES: Role[] = ['patient', 'professional', 'nurse', 'center_admin', 'system_admin'];
+// system_admin no entra a casos clínicos, emergencias ni historial - su ámbito es
+// solo Administración, Notificaciones y Mi Cuenta.
+const EMERGENCY_ROLES: Role[] = ['patient', 'professional', 'nurse', 'center_admin'];
+const HISTORIAL_ROLES: Role[] = ['patient', 'professional', 'nurse'];
+const CIERRE_CASO_ROLES: Role[] = ['patient', 'professional', 'center_admin'];
+const MONITORING_ROLES: Role[] = ['professional', 'nurse', 'center_admin'];
+const TELECONSULT_ROLES: Role[] = ['professional', 'center_admin'];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const role = useAuthStore((state) => state.user?.role);
@@ -18,10 +22,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, show: true },
     { name: "Asistente de Orientación", path: "/help", icon: Bot, show: role === 'patient' },
-    { name: "Emergencias", path: "/emergencies", icon: Siren, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
-    { name: "Historial Clínico", path: "/historial", icon: FileText, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
-    { name: "Cierre de Casos", path: "/cierre-casos", icon: FolderCheck, show: role && PATIENT_AND_CLINICAL_ROLES.includes(role) },
-    { name: "Alertas de Monitoreo", path: "/monitoring", icon: Activity, show: role && CLINICAL_ROLES.includes(role) },
+    { name: "Emergencias", path: "/emergencies", icon: Siren, show: role && EMERGENCY_ROLES.includes(role) },
+    { name: "Historial Clínico", path: "/historial", icon: FileText, show: role && HISTORIAL_ROLES.includes(role) },
+    { name: "Cierre de Casos", path: "/cierre-casos", icon: FolderCheck, show: role && CIERRE_CASO_ROLES.includes(role) },
+    { name: "Alertas de Monitoreo", path: "/monitoring", icon: Activity, show: role && MONITORING_ROLES.includes(role) },
     { name: "Teleconsulta", path: "/teleconsult", icon: PhoneCall, show: role && TELECONSULT_ROLES.includes(role) },
     { name: "Notificaciones", path: "/notifications", icon: Bell, show: true },
     { name: "Administración", path: "/admin", icon: Settings, show: role === 'system_admin' },
