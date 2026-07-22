@@ -1,34 +1,34 @@
-# SAMR — Seguridad
+# SAMR - Seguridad
 ## Rama `sec/security-hardening`
 
 > JWT RS256 (Zero Trust), configuración del API Gateway (Nginx: WAF, rate limiting, TLS), RBAC, cifrado, e inmutabilidad de auditoría. Para responsabilidades de cada servicio ver `arch/system-design`; para el detalle de tablas ver `data/persistence-db`.
 
 ---
 
-# 1. Zero Trust Interno — Principios
+# 1. Zero Trust Interno - Principios
 
 1. **Red:** todos los servicios en red Docker privada, sin puertos expuestos salvo Nginx `:443` y el `bff-service` (único punto de entrada del Frontend).
 2. **JWT descentralizado (RS256):** cada servicio verifica el token con la clave pública, sin llamar a `auth-service` en cada petición y sin poder *emitir* tokens.
 3. **RBAC explícito por vista**, no solo en el login: `permission_classes` específicas (`IsMedicalStaff`, `IsSystemAdmin`, `IsDPDDelegate`, `IsOwnerOrAdmin`) evaluadas en cada petición.
 4. **Cifrado en reposo:** Fernet (AES-128 + HMAC-SHA256) para cédula (`patient-service`); clave `FIELD_ENCRYPTION_KEY` solo en variables de entorno, nunca en código ni en la base de datos.
 5. **Cifrado en tránsito:** TLS 1.3 en Nginx y entre el Frontend y el BFF; tráfico interno Docker sin TLS (red privada, no expuesta).
-6. **Rate limiting + WAF** en Nginx — primera línea de defensa contra fuerza bruta y SQLi, antes de que la petición llegue a Django.
-7. **Validación ORM:** Django ORM usa queries parametrizadas por defecto — sin concatenación de SQL en ningún servicio.
+6. **Rate limiting + WAF** en Nginx - primera línea de defensa contra fuerza bruta y SQLi, antes de que la petición llegue a Django.
+7. **Validación ORM:** Django ORM usa queries parametrizadas por defecto - sin concatenación de SQL en ningún servicio.
 8. **Inmutabilidad de auditoría** a nivel de motor (`REVOKE UPDATE, DELETE`), no solo a nivel de aplicación (ver `audit_log` / `audit_reviews` en `data/persistence-db`).
 9. **Consentimiento LOPDP:** `patient-service` mantiene `consent_data`, `consent_ai`, `consent_sharing` como campos explícitos; ningún servicio de IA procesa datos sin verificar `consent_ai=True`.
-10. **Auditoría DPD restringida:** el endpoint de auditoría (`audit-service`) solo es accesible por el rol `dpd_delegate` — 403 inmediato para cualquier otro rol, sin exponer datos parciales.
-11. **Token de servicio interno** (`X-Service-Token`) distinto del JWT de usuario para toda llamada M2M — rotación cada 90 días.
+10. **Auditoría DPD restringida:** el endpoint de auditoría (`audit-service`) solo es accesible por el rol `dpd_delegate` - 403 inmediato para cualquier otro rol, sin exponer datos parciales.
+11. **Token de servicio interno** (`X-Service-Token`) distinto del JWT de usuario para toda llamada M2M - rotación cada 90 días.
 
 ---
 
-# 2. JWT RS256 — Por qué asimétrico y no HS256 compartido
+# 2. JWT RS256 - Por qué asimétrico y no HS256 compartido
 
-**Qué se evita:** firmar y verificar con el mismo secreto simétrico (`HS256`) copiado en las variables de entorno de los 12 servicios — con eso, *cualquier* servicio comprometido (o cualquier `.env` filtrado) permite forjar tokens válidos para **todo el sistema**.
+**Qué se evita:** firmar y verificar con el mismo secreto simétrico (`HS256`) copiado en las variables de entorno de los 12 servicios - con eso, *cualquier* servicio comprometido (o cualquier `.env` filtrado) permite forjar tokens válidos para **todo el sistema**.
 
 **Qué se aplica:** firma con clave privada RSA solo en `auth-service` (`RS256`); los demás servicios reciben únicamente la **clave pública** para verificar, nunca para firmar. Un servicio comprometido solo puede *leer* tokens, nunca *emitir* tokens falsos, porque no posee la clave privada.
 
 ```python
-# settings/base.py — idéntico salvo en auth-service
+# settings/base.py - idéntico salvo en auth-service
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -42,9 +42,9 @@ REST_FRAMEWORK = {
 }
 ```
 
-`djangorestframework-simplejwt` soporta `RS256` de forma nativa cambiando `ALGORITHM` — el cambio no añade complejidad de código, solo mejora la postura de seguridad alineándola con Zero Trust.
+`djangorestframework-simplejwt` soporta `RS256` de forma nativa cambiando `ALGORITHM` - el cambio no añade complejidad de código, solo mejora la postura de seguridad alineándola con Zero Trust.
 
-**Docker Compose — solo `auth-service` monta la clave privada:**
+**Docker Compose - solo `auth-service` monta la clave privada:**
 ```yaml
 auth-service:
   build: ./services/auth-service
@@ -56,7 +56,7 @@ auth-service:
 
 ---
 
-# 3. API Gateway — Nginx (WAF, Rate Limiting, TLS, RBAC previo)
+# 3. API Gateway - Nginx (WAF, Rate Limiting, TLS, RBAC previo)
 
 ```nginx
 # nginx/samr.conf
@@ -80,29 +80,29 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
 
-    # WAF básico — bloquea patrones de inyección antes de llegar a Django
+    # WAF básico - bloquea patrones de inyección antes de llegar a Django
     if ($request_uri ~* "(union|select|insert|drop|delete|--|;|<script)") { return 403; }
 
     limit_req_zone $binary_remote_addr zone=auth_zone:10m rate=5r/m;
     limit_req_zone $binary_remote_addr zone=api_zone:10m rate=30r/m;
     limit_req_zone $binary_remote_addr zone=iot_zone:10m rate=100r/m;
 
-    # M1 — Solicitud
+    # M1 - Solicitud
     location /api/auth/          { limit_req zone=auth_zone burst=3; proxy_pass http://auth_service; }
     location /api/patients/      { limit_req zone=api_zone;  proxy_pass http://patient_service; }
     location /api/solicitud/     { limit_req zone=api_zone;  proxy_pass http://solicitud_service; }
     location /api/monitoring/iot-events { limit_req zone=iot_zone; proxy_pass http://monitoring_service; }
     location /api/monitoring/    { limit_req zone=api_zone;  proxy_pass http://monitoring_service; }
 
-    # M2 — Evaluación y Asignación
+    # M2 - Evaluación y Asignación
     location /api/evaluacion/    { limit_req zone=api_zone;  proxy_pass http://evaluacion_service; }
 
-    # M3 — Atención
+    # M3 - Atención
     location /api/teleconsult/   { limit_req zone=api_zone;  proxy_pass http://teleconsult_service; }
     location /api/emergencies/   { limit_req zone=api_zone;  proxy_pass http://emergency_service; }
     location /api/cierre-caso/   { limit_req zone=api_zone;  proxy_pass http://cierre_caso_service; }
 
-    # M4 — Integración e Interoperabilidad Clínica
+    # M4 - Integración e Interoperabilidad Clínica
     location /api/historial/     { limit_req zone=api_zone;  proxy_pass http://historial_interop_service; }
     location /api/history/fhir/  { limit_req zone=api_zone;  proxy_pass http://historial_interop_service; }
     location /api/audit/         { limit_req zone=api_zone;  proxy_pass http://audit_service; }
@@ -113,7 +113,7 @@ server {
 }
 ```
 
-**El BFF y el Gateway:** el `bff-service` vive **delante** de Nginx (ver `arch/system-design`, topología). No existe una ruta `/api/bff/` en Nginx — el BFF es quien inicia las llamadas hacia las rutas de arriba, autenticado con el JWT del usuario que propaga. Nginx sigue aplicando el mismo WAF/rate-limiting a ese tráfico, igual que a cualquier otro cliente.
+**El BFF y el Gateway:** el `bff-service` vive **delante** de Nginx (ver `arch/system-design`, topología). No existe una ruta `/api/bff/` en Nginx - el BFF es quien inicia las llamadas hacia las rutas de arriba, autenticado con el JWT del usuario que propaga. Nginx sigue aplicando el mismo WAF/rate-limiting a ese tráfico, igual que a cualquier otro cliente.
 
 ```python
 # Verificación del token interno en el servicio receptor
@@ -127,7 +127,7 @@ class IsInternalService(BasePermission):
 # 4. Checklist de Hardening por Servicio
 
 - [ ] `permission_classes` explícitas en cada vista (nunca depender solo del default `IsAuthenticated`).
-- [ ] Ningún secreto (clave privada JWT, `FIELD_ENCRYPTION_KEY`, `INTERNAL_SERVICE_TOKEN`) en código o en la base de datos — solo variables de entorno.
+- [ ] Ningún secreto (clave privada JWT, `FIELD_ENCRYPTION_KEY`, `INTERNAL_SERVICE_TOKEN`) en código o en la base de datos - solo variables de entorno.
 - [ ] Docker: usuario no-root, multi-stage build, `HEALTHCHECK` incluido.
 - [ ] Toda tabla de auditoría/trazabilidad con `REVOKE UPDATE, DELETE` documentado en `scripts/init-db.sh`.
 - [ ] `X-Request-ID` propagado en cada petición para trazabilidad entre logs de distintos servicios.

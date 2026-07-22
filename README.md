@@ -1,4 +1,4 @@
-# SAMR — Arquitectura de Sistema
+# SAMR - Arquitectura de Sistema
 ## Rama `arch/system-design`
 
 Este es el plan arquitectónico completo del sistema SAMR (Sistema de Atención Médica Remota).
@@ -6,16 +6,16 @@ Este es el plan arquitectónico completo del sistema SAMR (Sistema de Atención 
 ### Cómo usar esta rama
 
 1. **Contexto:** Lee `ARCHITECTURE.md` (mismo contenido en `AGENTS.md` para Antigravity)
-2. **Agente:** La rama usa Antigravity IDE — el agente leerá `AGENTS.md` automáticamente en cada sesión
+2. **Agente:** La rama usa Antigravity IDE - el agente leerá `AGENTS.md` automáticamente en cada sesión
 3. **Trabajo:** El arquitecto de software genera la estructura de carpetas, docker-compose.yml, nginx.conf, y los esqueletos de los 12 microservicios siguiendo el orden en `ARCHITECTURE.md` sección 5
 
 ### Dependencias de otras ramas
 
-- `data/persistence-db` — Define el schema PostgreSQL de cada servicio (11 bases de datos independientes)
-- `logic/core-services` — Define los eventos RabbitMQ y la comunicación entre servicios
-- `sec/security-hardening` — Define la configuración de Nginx, JWT RS256 y RBAC
-- `ui/frontend-app` — Depende de que el BFF y API Gateway estén listos
-- `ux/design-prototypes` — Define lineamientos visuales y accesibilidad
+- `data/persistence-db` - Define el schema PostgreSQL de cada servicio (11 bases de datos independientes)
+- `logic/core-services` - Define los eventos RabbitMQ y la comunicación entre servicios
+- `sec/security-hardening` - Define la configuración de Nginx, JWT RS256 y RBAC
+- `ui/frontend-app` - Depende de que el BFF y API Gateway estén listos
+- `ux/design-prototypes` - Define lineamientos visuales y accesibilidad
 
 ### Orden de trabajo recomendado
 
@@ -42,7 +42,7 @@ docker compose up -d
 **Última actualización:** $(date)
 **Estado:** En construcción (fase: estructura base)
 
-### Backend local — RabbitMQ
+### Backend local - RabbitMQ
 
 Para el vhost raíz de RabbitMQ se usa una ruta AMQP codificada, compatible tanto con Celery como con Pika:
 
@@ -50,7 +50,7 @@ Para el vhost raíz de RabbitMQ se usa una ruta AMQP codificada, compatible tant
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
 ```
 
-### Backend local — Pruebas
+### Backend local - Pruebas
 
 Cada microservicio incluye su configuración de pytest. Con el entorno levantado, una suite individual se ejecuta así:
 
@@ -58,7 +58,7 @@ Cada microservicio incluye su configuración de pytest. Con el entorno levantado
 docker compose exec auth-service python -m pytest -q
 ```
 
-### Backend local — cifrado de datos de paciente
+### Backend local - cifrado de datos de paciente
 
 `patient-service` cifra la cédula con Fernet. El valor de desarrollo está en `.env.example`; en cualquier ambiente compartido debe reemplazarse:
 
@@ -93,7 +93,7 @@ El BFF usa `BFF_ALLOWED_ORIGINS` y `VERIFY_GATEWAY_TLS`; la verificación TLS so
 
 Las notificaciones del MVP usan `MVP_NOTIFICATION_BACKEND=log`; un proceso `notification-consumer` recibe eventos y el worker Celery ejecuta el adaptador simulado.
 
-### Backend local — arranque reproducible y procesos asíncronos
+### Backend local - arranque reproducible y procesos asíncronos
 
 Desde `samr/`, el entorno completo se construye y arranca con:
 

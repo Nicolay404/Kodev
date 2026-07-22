@@ -1,7 +1,7 @@
-# 08 — Microinteracciones
-## SAMR — Sistema de Atención Médica Remota
+# 08 - Microinteracciones
+## SAMR - Sistema de Atención Médica Remota
 
-> Implementación con **Framer Motion** (definido en la arquitectura v4). Regla maestra: toda animación debe respetar `prefers-reduced-motion: reduce` — en ese caso se sustituye por un cambio de estado instantáneo (opacidad/posición final directa, sin transición), nunca se elimina el feedback, solo el movimiento (ver doc 09). Ninguna animación decorativa supera los 400ms — SAMR no es un producto de entretenimiento, la velocidad percibida es parte de la confianza clínica.
+> Implementación con **Framer Motion** (definido en la arquitectura v4). Regla maestra: toda animación debe respetar `prefers-reduced-motion: reduce` - en ese caso se sustituye por un cambio de estado instantáneo (opacidad/posición final directa, sin transición), nunca se elimina el feedback, solo el movimiento (ver doc 09). Ninguna animación decorativa supera los 400ms - SAMR no es un producto de entretenimiento, la velocidad percibida es parte de la confianza clínica.
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | `ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | Transiciones generales (la mayoría de los casos) |
 | `ease-entrance` | `cubic-bezier(0, 0, 0.2, 1)` | Elementos que aparecen (modales, toasts, dropdowns) |
-| `ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Elementos que desaparecen — salida más rápida que la entrada |
+| `ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Elementos que desaparecen - salida más rápida que la entrada |
 | `ease-spring-soft` | `spring(stiffness: 300, damping: 30)` | Switches, checkboxes, feedback táctil de botón |
 
 ## 8.2 Duraciones estándar
@@ -40,21 +40,21 @@
 
 | Elemento | Efecto |
 |---|---|
-| Botón | `scale(0.98)` durante `duration-instant`, vuelve a `scale(1)` al soltar — feedback táctil inmediato |
+| Botón | `scale(0.98)` durante `duration-instant`, vuelve a `scale(1)` al soltar - feedback táctil inmediato |
 | Checkbox/Radio | Ligero "pop": `scale(1.1)` → `scale(1)` en `ease-spring-soft` al marcarse |
 | Card clickeable | `scale(0.99)` sutil, evita sensación de "no registró el clic" |
 
 ## 8.5 Scroll
 
-- **Reveal progresivo**: solo en pantallas de contenido largo no crítico (ej. `/app/ayuda`, landing de auth) — elementos entran con `opacity 0→1` + `translateY(8px→0)` al entrar en viewport, `duration-base`, sin repetir la animación si el usuario vuelve a hacer scroll hacia arriba y abajo (se anima una sola vez por sesión de scroll).
-- **Prohibido en pantallas operativas** (`/app/casos`, `/app/auditoria`, cualquier tabla): el contenido de trabajo aparece instantáneamente — animar cada fila de una tabla larga genera fatiga y ralentiza percibidamente el escaneo de información.
+- **Reveal progresivo**: solo en pantallas de contenido largo no crítico (ej. `/app/ayuda`, landing de auth) - elementos entran con `opacity 0→1` + `translateY(8px→0)` al entrar en viewport, `duration-base`, sin repetir la animación si el usuario vuelve a hacer scroll hacia arriba y abajo (se anima una sola vez por sesión de scroll).
+- **Prohibido en pantallas operativas** (`/app/casos`, `/app/auditoria`, cualquier tabla): el contenido de trabajo aparece instantáneamente - animar cada fila de una tabla larga genera fatiga y ralentiza percibidamente el escaneo de información.
 - **Sticky header de tabla**: transición de sombra (`shadow-none`→`shadow-sm`) al despegarse durante scroll, `duration-instant`.
 
 ## 8.6 Pulso de urgencia crítica
 
 Único patrón de animación en loop continuo del sistema, reservado exclusivamente para el nivel **Crítico** (doc 05 §5.1):
 - Ciclo: `opacity 1 → 0.85 → 1`, frecuencia **1Hz** (1000ms por ciclo completo), `ease-standard`.
-- Aplica al badge de nivel de riesgo y al borde de `card-urgencia` cuando el nivel es crítico — nunca al texto de cuerpo (mantener legibilidad constante).
+- Aplica al badge de nivel de riesgo y al borde de `card-urgencia` cuando el nivel es crítico - nunca al texto de cuerpo (mantener legibilidad constante).
 - Se detiene automáticamente si `prefers-reduced-motion: reduce` está activo, sustituido por un borde estático de mayor grosor (4px en vez de pulso) para conservar la señal de urgencia sin movimiento.
 
 ## 8.7 Aparición (entrada)
@@ -69,18 +69,18 @@
 
 ## 8.8 Desaparición (salida)
 
-Todas las salidas usan `ease-exit` y duración igual o menor a su entrada correspondiente (una interfaz debe sentirse más rápida al cerrarse que al abrirse — reduce percepción de bloqueo). Excepción: el toast de error crítico no se anima al desaparecer automáticamente porque **no desaparece automáticamente** (doc 06.14) — solo se anima su cierre manual.
+Todas las salidas usan `ease-exit` y duración igual o menor a su entrada correspondiente (una interfaz debe sentirse más rápida al cerrarse que al abrirse - reduce percepción de bloqueo). Excepción: el toast de error crítico no se anima al desaparecer automáticamente porque **no desaparece automáticamente** (doc 06.14) - solo se anima su cierre manual.
 
 ## 8.9 Transición entre pantallas (routing)
 
-Cross-fade simple `opacity 0→1`, `duration-fast` (150ms) — sin transiciones de "deslizamiento" tipo app nativa, que en un contexto de datos clínicos densos generan más distracción que valor. Excepción: la entrada a `P-Emergencia-Activa` usa una transición ligeramente más marcada (`duration-slow`, con el color de urgencia expandiéndose desde arriba) — es la única transición de página que debe *sentirse* como un cambio de contexto importante.
+Cross-fade simple `opacity 0→1`, `duration-fast` (150ms) - sin transiciones de "deslizamiento" tipo app nativa, que en un contexto de datos clínicos densos generan más distracción que valor. Excepción: la entrada a `P-Emergencia-Activa` usa una transición ligeramente más marcada (`duration-slow`, con el color de urgencia expandiéndose desde arriba) - es la única transición de página que debe *sentirse* como un cambio de contexto importante.
 
 ## 8.10 Feedback visual de formularios
 
 | Evento | Feedback |
 |---|---|
 | Validación exitosa de campo (en tiempo real) | Ícono de check aparece con `scale(0→1)`, `duration-instant`, color `success-600` |
-| Error de validación | El campo tiembla sutilmente (`translateX: -4px, 4px, -2px, 0`, ~200ms total) **solo la primera vez que aparece el error**, no en cada re-validación — evita ruido repetitivo |
+| Error de validación | El campo tiembla sutilmente (`translateX: -4px, 4px, -2px, 0`, ~200ms total) **solo la primera vez que aparece el error**, no en cada re-validación - evita ruido repetitivo |
 | Envío de formulario en proceso | Botón entra en estado `loading` (doc 06.1), inputs se deshabilitan con opacidad reducida, sin animación adicional |
 | Guardado automático (borrador) | Micro-indicador de texto "Guardado" con fade in/out de 2s total, esquina del formulario, no interrumpe |
 

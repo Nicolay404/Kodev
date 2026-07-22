@@ -1,7 +1,7 @@
-# Casos de Uso — Sistema de Atención Médica Remota (SAMR)
+# Casos de Uso - Sistema de Atención Médica Remota (SAMR)
 
-> **Proyecto:** SAMR — Sistema de Atención Médica Remota  
-> **Equipo:** Kodev | UTPL — Ingeniería de Requisitos · 1er Bimestre  
+> **Proyecto:** SAMR - Sistema de Atención Médica Remota  
+> **Equipo:** Kodev | UTPL - Ingeniería de Requisitos · 1er Bimestre  
 > **Versión:** 2.1 ajustada | Mayo 2026  
 > **Base de ajuste:** Se mantienen los 5 módulos originales de la macrocadena de valor y se corrigen los flujos para que representen procesos de negocio, sin convertir detalles técnicos internos en pasos del caso de uso.
 >
@@ -31,7 +31,7 @@
 
 ---
 
-# Módulo 1 — Módulo de Solicitud
+# Módulo 1 - Módulo de Solicitud
 
 ## CU-01: Paciente: Solicitar atención médica de forma multimodal
 
@@ -52,7 +52,7 @@ Paciente: Solicitar atención
 
 
 
-# Módulo 2 — Módulo de Evaluación y Asignación
+# Módulo 2 - Módulo de Evaluación y Asignación
 
 ## CU-02: Consorcio SAMR: Evaluar y asignar solicitud de atención
 
@@ -78,7 +78,7 @@ Paciente: Recibir confirmación y seguimiento de asignación
 
 
 
-# Módulo 3 — Módulo de Atención y Operación
+# Módulo 3 - Módulo de Atención y Operación
 
 ## CU-03: Profesional de la Salud: Brindar atención médica remota
 
@@ -100,7 +100,7 @@ Paramédico: Recibir asignación de caso
 ---
 
 
-# Módulo 4 — Módulo de Seguimiento y Continuidad Asistencial
+# Módulo 4 - Módulo de Seguimiento y Continuidad Asistencial
 
 ## CU-04: Profesional de la Salud: Gestionar seguimiento y cierre del caso clínico
 
@@ -118,7 +118,7 @@ MSP / SPDP: Revisar interacciones y decisiones registradas
 
 
 
-# Módulo 5 — Módulo de Integración a Consorcio
+# Módulo 5 - Módulo de Integración a Consorcio
 
 ## CU-05: Centro Médico: Integrarse al consorcio e intercambiar información clínica
 
