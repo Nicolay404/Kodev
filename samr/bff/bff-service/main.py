@@ -7,7 +7,20 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="SAMR BFF", version="1.0")
-app.add_middleware(CORSMiddleware, allow_origins=[item for item in os.environ.get("BFF_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if item], allow_credentials=True, allow_methods=["GET"], allow_headers=["Authorization", "X-Request-ID"])
+BFF_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "BFF_ALLOWED_ORIGINS", "http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=BFF_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "X-Request-ID"],
+)
 API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "https://nginx")
 JWT_PUBLIC_KEY_PATH = os.environ.get("JWT_PUBLIC_KEY_PATH", "/keys/public.pem")
 VERIFY_GATEWAY_TLS = os.environ.get("VERIFY_GATEWAY_TLS", "true").lower() == "true"

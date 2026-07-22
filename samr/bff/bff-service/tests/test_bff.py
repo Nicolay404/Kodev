@@ -46,6 +46,23 @@ def test_health():
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
+@pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
+def test_cors_preflight_allows_vite_origin(method):
+    client = TestClient(app)
+    response = client.options(
+        "/dashboard/",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": method,
+            "Access-Control-Request-Headers": "Authorization,X-Request-ID",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert method in response.headers["access-control-allow-methods"]
+
 @pytest.mark.asyncio
 async def test_dashboard_patient(auth_jwt_patient):
     
